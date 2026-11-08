@@ -24,6 +24,9 @@ if _previous_gdk_gl is None:
 else:
     os.environ['GDK_GL'] = _previous_gdk_gl
 
+from feodal_preferences import load_mode, steam_command
+from feodal_settings import ControlCenter, diagnose_async
+
 STYLE = b'''
 window { background: #101923; color: #e5edf5; font-family: Sans; }
 button { background: #182633; color: #e5edf5; border: none; box-shadow: none;
@@ -33,6 +36,10 @@ button.active { background: #27594f; color: #a6f5d5; }
 entry { background: #182633; color: #e5edf5; border-color: #365164; padding: 9px; }
 label.brand { color: #80dfba; font-weight: bold; }
 label.muted { color: #9cabb9; }
+notebook, notebook > stack, viewport, scrolledwindow { background: #101923; color: #e5edf5; }
+notebook > header { background: #182633; border: none; }
+notebook > header > tabs > tab { background: #182633; color: #c6d3de; padding: 10px; }
+notebook > header > tabs > tab:checked { background: #27594f; color: #a6f5d5; }
 list, row { background: transparent; color: #e5edf5; }
 row:selected, row:hover { background: #294356; }
 '''
@@ -65,12 +72,14 @@ class Shell:
         row = Gtk.Box(spacing=7)
         row.set_border_width(5)
         self.panel.add(row)
+        self.settings = None
+        self.steam_busy = False
         self.menu_button = self.button('◈  FEODAL', self.toggle_launcher)
         row.pack_start(self.menu_button, False, False, 0)
-        for label, command in [('Файли', ['thunar']), ('Термінал', ['xterm']),
-                               ('Steam', ['steam']), ('Звук', ['pavucontrol']),
-                               ('Мережа', ['nm-connection-editor'])]:
+        for label, command in [('Файли', ['thunar']), ('Термінал', ['xterm'])]:
             row.pack_start(self.button(label, lambda _, cmd=command: self.run(cmd)), False, False, 0)
+        row.pack_start(self.button('Steam', lambda _: self.launch_steam()), False, False, 0)
+        row.pack_start(self.button('Налаштування', self.open_settings), False, False, 0)
         self.tasks = Gtk.Box(spacing=4)
         row.pack_start(self.tasks, True, True, 4)
         self.clock = Gtk.Label()
@@ -157,6 +166,34 @@ class Shell:
             subprocess.Popen(command, start_new_session=True)
         except OSError as exc:
             self.error(str(exc))
+
+    def open_settings(self, *_):
+        if self.settings is None:
+            self.settings = ControlCenter(self)
+        self.settings.present()
+
+    def launch_steam(self):
+        if self.steam_busy:
+            return
+        self.steam_busy = True
+        mode = load_mode()
+
+        def ready(status, error):
+            self.steam_busy = False
+            if error:
+                self.error(error)
+                return
+            try:
+                command = steam_command(mode, status)
+            except ValueError as exc:
+                self.error(str(exc))
+                return
+            self.run(command)
+
+        if mode == 'auto':
+            ready({'steam_available': bool(shutil.which('steam'))}, None)
+        else:
+            diagnose_async(ready)
 
     def toggle_launcher(self, *_):
         if self.launcher:
@@ -291,6 +328,8 @@ def main():
         if 'shell' not in state:
             state['shell'] = Shell()
             application.hold()
+        if '--settings' in invocation.get_arguments():
+            state['shell'].open_settings()
         if '--launcher' in invocation.get_arguments():
             state['shell'].toggle_launcher()
         return 0

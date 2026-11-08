@@ -4,9 +4,13 @@ from pathlib import Path
 import subprocess
 import tempfile
 import time
+import threading
 import unittest
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
+import sys
+sys.path.insert(0, str(ROOT / 'shell'))
 original_gdk_gl = os.environ.get('GDK_GL')
 spec = importlib.util.spec_from_file_location('feodal_panel', ROOT / 'shell/feodal_panel.py')
 module = importlib.util.module_from_spec(spec)
@@ -33,6 +37,8 @@ class ShellTests(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        if cls.shell.settings:
+            cls.shell.settings.destroy()
         if cls.shell.launcher:
             cls.shell.launcher.destroy()
         cls.shell.desktop.destroy()
@@ -86,6 +92,76 @@ class ShellTests(unittest.TestCase):
         del window
         pump()
         self.assertFalse(any(b.get_label() == 'FeodalSmoke' for b in self.shell.tasks.get_children()))
+
+    def test_diagnostics_callbacks_return_on_gtk_thread(self):
+        import feodal_settings
+        thread_id = threading.get_ident()
+        for snapshot in ({'kernel': 'test'}, None):
+            results = []
+            def received(status, error):
+                results.append((status, error, threading.get_ident()))
+            if snapshot:
+                mock = patch.object(feodal_settings, 'collect_status', return_value=snapshot)
+            else:
+                mock = patch.object(feodal_settings, 'collect_status', side_effect=OSError('test failure'))
+            with mock:
+                feodal_settings.diagnose_async(received)
+                pump()
+            self.assertEqual(len(results), 1)
+            self.assertEqual(results[0][2], thread_id)
+            self.assertEqual(results[0][0], snapshot)
+            self.assertEqual(bool(results[0][1]), snapshot is None)
+
+    def test_control_center_lifecycle_and_preferences(self):
+        from feodal_settings import status_text
+        snapshot = {'kernel': 'test-kernel', 'memory_total_mib': 8192, 'memory_available_mib': 4096,
+                    'gpus': [{'vendor': 'Intel', 'device': 'test', 'driver': 'i915'}],
+                    'nvidia_ready': False, 'prime_available': False, 'steam_available': False,
+                    'notes': ['Test hardware only']}
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, {'XDG_CONFIG_HOME': directory}), \
+                patch('feodal_settings.diagnose_async') as diagnose:
+            self.shell.open_settings()
+            center = self.shell.settings
+            self.shell.open_settings()
+            self.assertIs(self.shell.settings, center)
+            self.assertTrue(center.busy)
+            self.assertFalse(center.refresh_button.get_sensitive())
+            diagnose.call_args.args[0](snapshot, None)
+            self.assertIn('test-kernel', center.status_label.get_text())
+            self.assertTrue(center.refresh_button.get_sensitive())
+            self.assertIn('Test hardware only', status_text(snapshot))
+            center.mode.set_active_id('nvidia')
+            self.assertEqual(module.load_mode(), 'nvidia')
+            center.destroy()
+            self.assertIsNone(self.shell.settings)
+            center.received(snapshot, None)
+            self.shell.open_settings()
+            self.assertEqual(self.shell.settings.mode.get_active_id(), 'nvidia')
+            self.shell.settings.destroy()
+        pump()
+
+    def test_steam_guard_and_async_launch(self):
+        with patch.object(self.shell, 'run') as run, patch.object(self.shell, 'error') as error, \
+                patch.object(module, 'load_mode', return_value='nvidia'), \
+                patch.object(module, 'diagnose_async') as diagnose:
+            self.shell.launch_steam()
+            self.assertTrue(self.shell.steam_busy)
+            self.shell.launch_steam()
+            diagnose.assert_called_once()
+            callback = diagnose.call_args.args[0]
+            callback({'steam_available': True, 'prime_available': True, 'nvidia_ready': False}, None)
+            self.assertFalse(self.shell.steam_busy)
+            run.assert_not_called()
+            error.assert_called_once()
+            self.shell.launch_steam()
+            diagnose.call_args.args[0]({'steam_available': True, 'prime_available': True, 'nvidia_ready': True}, None)
+            run.assert_called_once_with(['prime-run', 'steam'])
+        with patch.object(self.shell, 'run') as run, patch.object(module, 'load_mode', return_value='auto'), \
+                patch.object(module.shutil, 'which', return_value='/usr/bin/steam'), \
+                patch.object(module, 'diagnose_async') as diagnose:
+            self.shell.launch_steam()
+            run.assert_called_once_with(['steam'])
+            diagnose.assert_not_called()
 
     def test_missing_program_reports_error(self):
         messages = []

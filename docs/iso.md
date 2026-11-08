@@ -14,6 +14,10 @@ Build `feodal-shell` first with Arch packaging tools. On an Arch Linux build hos
 sudo ./scripts/build-iso.sh /path/to/feodal-shell-<version>-any.pkg.tar.* [output-directory]
 ```
 
+The image filename uses the shell package version (for example,
+`feodal-0.2.0-1-x86_64.iso`) so different package versions do not overwrite the
+previous dated prototype.
+
 The output directory defaults to `./out` and is not cleaned or deleted. The package must have the `feodal-shell` package name; it is staged in a temporary local file repository created with `repo-add`, allowing pacman to resolve the shell and its official repository dependencies. Pass a locally built package you trust. The installed releng profile can be selected with `ARCHISO_RELENG_PROFILE` if it is not at `/usr/share/archiso/configs/releng`.
 
 Boot the resulting ISO as a live system. This prototype has no Feodal installer or automatic disk-writing workflow. Arch releng's inherited installation/rescue utilities (including archinstall) remain present; do not treat them as a tested Feodal installation path. It is not a claim of hardware compatibility, and physical hardware remains untested. The 2026-11-08 ISO was built and boot-tested in QEMU with both BIOS and UEFI (Secure Boot off); see [verification](verification.md).
@@ -29,7 +33,7 @@ On an Arch host install `qemu-system-x86`; on Ubuntu/Debian run
 From a graphical session:
 
 ```sh
-./scripts/boot-vm.sh out/feodal-<date>-x86_64.iso
+./scripts/boot-vm.sh out/feodal-<version>-x86_64.iso
 ```
 
 The script boots the ISO with software emulation, 4 GiB RAM and **no attached host

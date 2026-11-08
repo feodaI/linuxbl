@@ -63,6 +63,7 @@ cat >> "$profile/profiledef.sh" <<'PROFILE_EOF'
 # Prefer lower build/decompression cost over the smallest possible live image.
 airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '6' '-b' '1M')
 PROFILE_EOF
+printf '\niso_version=%q\n' "${package_info#* }" >> "$profile/profiledef.sh"
 grep -q '^iso_name="feodal"$' "$profile/profiledef.sh" || die 'could not customize releng profile metadata'
 
 package_copy="$repo_dir/${package_path##*/}"
