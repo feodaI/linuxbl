@@ -1,14 +1,20 @@
 pkgname=feodal-shell
-pkgver=0.1.0
+pkgver=0.2.0
 pkgrel=1
 pkgdesc='Lightweight native GTK desktop shell for Feodal Linux'
 arch=('any')
 license=('MIT')
+optdepends=('steam: game client (multilib)' 'nvidia-prime: prime-run for compatible NVIDIA graphics')
 depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu')
 
 package() {
     local root="$startdir/.."
     install -Dm644 "$root/shell/feodal_panel.py" "$pkgdir/usr/lib/feodal/feodal_panel.py"
+    for module in feodal_settings feodal_preferences feodal_hardware; do
+        install -Dm644 "$root/shell/$module.py" "$pkgdir/usr/lib/feodal/$module.py"
+    done
+    install -Dm755 "$root/bin/feodal-hardware" "$pkgdir/usr/bin/feodal-hardware"
+    install -Dm644 "$root/config/feodal-settings.desktop" "$pkgdir/usr/share/applications/feodal-settings.desktop"
     install -Dm755 "$root/bin/feodal-panel" "$pkgdir/usr/bin/feodal-panel"
     install -Dm755 "$root/bin/feodal-session" "$pkgdir/usr/bin/feodal-session"
     install -Dm644 "$root/config/openbox.xml" "$pkgdir/etc/xdg/feodal/openbox.xml"
