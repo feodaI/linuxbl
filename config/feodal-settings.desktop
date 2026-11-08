@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Feodal Settings
+Name[uk]=Налаштування Feodal
+Comment=Hardware status, gaming preferences and desktop tools
+Comment[uk]=Стан обладнання, ігрові налаштування й інструменти
+Exec=feodal-panel --settings
+TryExec=feodal-panel
+Icon=preferences-system
+Terminal=false
+Type=Application
+Categories=Settings;System;
