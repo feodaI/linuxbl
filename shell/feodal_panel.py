@@ -5,6 +5,7 @@ import os
 import shutil
 import subprocess
 import sys
+import threading
 
 # This Cairo-only shell does not need a GL context; do not impose that on apps.
 _previous_gdk_gl = os.environ.get('GDK_GL')
@@ -26,6 +27,7 @@ else:
 
 from feodal_preferences import load_mode, steam_command
 from feodal_settings import ControlCenter, diagnose_async
+from feodal_input import current_group, load_layout
 
 STYLE = b'''
 window { background: #101923; color: #e5edf5; font-family: Sans; }
@@ -84,9 +86,18 @@ class Shell:
         row.pack_start(self.button('Steam', lambda _: self.launch_steam()), False, False, 0)
         row.pack_start(self.button('Налаштування', self.open_settings), False, False, 0)
         self.tasks = Gtk.Box(spacing=4)
-        row.pack_start(self.tasks, True, True, 4)
+        task_scroll = Gtk.ScrolledWindow()
+        task_scroll.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.NEVER)
+        task_scroll.add(self.tasks)
+        row.pack_start(task_scroll, True, True, 4)
         self.clock = Gtk.Label()
-        row.pack_end(self.button('Вийти', self.logout), False, False, 0)
+        tray_space = Gtk.Box()
+        tray_space.set_size_request(166, -1)
+        row.pack_end(tray_space, False, False, 0)
+        row.pack_end(self.button('Живлення', self.logout), False, False, 0)
+        self.language = self.button('EN', self.toggle_language)
+        self.language.set_tooltip_text('Перемкнути розкладку (Alt+Shift)')
+        row.pack_end(self.language, False, False, 0)
         row.pack_end(self.clock, False, False, 8)
         self.launcher = None
         self.desktop = Gtk.Window(title='Feodal Desktop')
@@ -307,17 +318,57 @@ class Shell:
         now = datetime.datetime.now()
         self.clock.set_text(now.strftime('%H:%M'))
         self.clock.set_tooltip_text(now.strftime('%d.%m.%Y'))
+        try:
+            group = current_group()
+            layouts = load_layout().split(',')
+            layout = layouts[group] if group < len(layouts) else '?'
+            self.language.set_label({'us': 'EN', 'ua': 'UK'}.get(layout, '—'))
+        except (OSError, RuntimeError):
+            self.language.set_label('—')
         return True
 
-    def logout(self, *_):
+    def toggle_language(self, *_):
+        from feodal_input import toggle_group
+        try:
+            toggle_group(load_layout())
+            self.tick()
+        except (OSError, RuntimeError, ValueError):
+            self.error('Не вдалося перемкнути розкладку. Обери дві мови в налаштуваннях.')
+
+    def confirm_power(self, action):
+        labels = {'logout': 'Завершити сеанс', 'reboot': 'Перезавантажити', 'poweroff': 'Вимкнути'}
         dialog = Gtk.MessageDialog(transient_for=self.panel, modal=True,
                                    message_type=Gtk.MessageType.QUESTION,
                                    buttons=Gtk.ButtonsType.OK_CANCEL,
-                                   text='Завершити сеанс? Збережи відкриті документи.')
+                                   text=labels[action] + '? Збережи відкриті документи.')
         response = dialog.run()
         dialog.destroy()
-        if response == Gtk.ResponseType.OK:
-            self.run(['openbox', '--exit'])
+        return response == Gtk.ResponseType.OK
+
+    def power_action(self, action):
+        commands = {'logout': ['openbox', '--exit'], 'reboot': ['systemctl', 'reboot'],
+                    'poweroff': ['systemctl', 'poweroff']}
+        if action not in commands or not self.confirm_power(action):
+            return
+        def work():
+            try:
+                result = subprocess.run(commands[action], capture_output=True, text=True, timeout=15)
+                message = 'Дію відхилено системою. Перевір дозволи та відкриті програми.' if result.returncode else None
+            except (OSError, subprocess.TimeoutExpired):
+                message = 'Не вдалося виконати дію живлення.'
+            if message:
+                GLib.idle_add(lambda: (self.error(message), False)[1])
+        threading.Thread(target=work, daemon=True, name='feodal-power').start()
+
+    def logout(self, *_):
+        menu = Gtk.Menu()
+        for action, label in [('logout', 'Вийти із сеансу'), ('reboot', 'Перезавантажити'),
+                              ('poweroff', 'Вимкнути комп’ютер')]:
+            item = Gtk.MenuItem(label=label)
+            item.connect('activate', lambda _, choice=action: self.power_action(choice))
+            menu.append(item)
+        menu.show_all()
+        menu.popup_at_widget(self.panel, Gdk.Gravity.NORTH_EAST, Gdk.Gravity.SOUTH_EAST, None)
 
 
 def main():

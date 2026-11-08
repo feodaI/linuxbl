@@ -5,6 +5,7 @@ from gi.repository import GLib, Gtk
 
 from feodal_hardware import collect_status
 from feodal_preferences import load_mode, save_mode
+from feodal_input import load_layout, apply_layout, save_layout
 
 GUIDE = '''ДЛЯ MX330 / INTEL / 8 ГБ
 
@@ -119,7 +120,28 @@ class ControlCenter(Gtk.Window):
                                ('Звук', ['pavucontrol']), ('Мережеві з’єднання', ['nm-connection-editor']),
                                ('Файли', ['thunar']), ('Термінал', ['xterm'])]:
             tools.pack_start(shell.button(title, lambda _, cmd=command: shell.run(cmd)), False, False, 0)
-        notebook.append_page(tools, Gtk.Label(label='Інструменти'))
+        notebook.append_page(self.scrolled(tools), Gtk.Label(label='Інструменти'))
+        desktop = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        desktop.set_border_width(14)
+        desktop.pack_start(self.label('Розкладка клавіатури'), False, False, 0)
+        self.keyboard = Gtk.ComboBoxText()
+        for value, title in [('us,ua', 'English + Українська — Alt+Shift'), ('us', 'English'), ('ua', 'Українська')]:
+            self.keyboard.append(value, title)
+        self.keyboard.set_active_id(load_layout())
+        desktop.pack_start(self.keyboard, False, False, 0)
+        self.apply_input_button = shell.button('Застосувати розкладку', self.apply_keyboard)
+        desktop.pack_start(self.apply_input_button, False, False, 0)
+        self.keyboard_note = self.label('Alt+Shift перемикає дві розкладки; налаштування зберігаються для користувача.')
+        desktop.pack_start(self.keyboard_note, False, False, 0)
+        for title, command in [('Екран і роздільність', ['arandr']),
+                               ('Живлення, батарея та яскравість', ['xfce4-power-manager-settings']),
+                               ('Знімок екрана', ['xfce4-screenshooter']),
+                               ('Перевірити сповіщення', ['notify-send', 'Feodal', 'Сповіщення працюють.'])]:
+            desktop.pack_start(shell.button(title, lambda _, cmd=command: shell.run(cmd)), False, False, 0)
+        desktop.pack_start(self.label('Яскравість і батарея доступні лише за підтримки обладнання.\n'
+                                     'Сон і закриття кришки потребують перевірки на ноутбуці.\n'
+                                     'Блокування екрана ще не налаштоване — не вважай сон захистом.'), False, False, 0)
+        notebook.append_page(self.scrolled(desktop), Gtk.Label(label='Робочий стіл'))
         guide = self.label(GUIDE)
         guide.set_selectable(True)
         guide.set_margin_start(14)
@@ -143,6 +165,24 @@ class ControlCenter(Gtk.Window):
         scroll.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
         scroll.add(widget)
         return scroll
+
+    def apply_keyboard(self, *_):
+        self.apply_input_button.set_sensitive(False)
+        layout = self.keyboard.get_active_id()
+        def done(message):
+            if not self.closed:
+                self.apply_input_button.set_sensitive(True)
+                self.keyboard_note.set_text(message)
+            return False
+        def work():
+            try:
+                apply_layout(layout)
+                save_layout(layout)
+                message = 'Розкладку застосовано й збережено.'
+            except (OSError, ValueError, RuntimeError):
+                message = 'Не вдалося застосувати або зберегти розкладку. Перевір X11 та права доступу.'
+            GLib.idle_add(done, message)
+        threading.Thread(target=work, daemon=True, name='feodal-input').start()
 
     def save(self, *_):
         try:

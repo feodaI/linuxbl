@@ -13,7 +13,7 @@ if [ "$(id -u)" -ne 0 ]; then
 fi
 apt-get update
 apt-get install -y --no-install-recommends python3-gi python3-cairo python3-gi-cairo \
-    gir1.2-gtk-3.0 gir1.2-wnck-3.0 openbox xvfb xauth xdotool xterm dbus-x11
+    gir1.2-gtk-3.0 gir1.2-wnck-3.0 openbox xvfb xauth xdotool xterm dbus-x11 libx11-6 x11-xkb-utils
 
 if [ "${1:-}" = --with-vm ]; then
     apt-get install -y --no-install-recommends qemu-system-x86 qemu-utils libarchive-tools openssh-client curl
