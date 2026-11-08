@@ -13,13 +13,49 @@ if command -v dbus-update-activation-environment >/dev/null 2>&1; then
         printf '%s\n' 'feodal-session: warning: could not update D-Bus activation environment' >&2
 fi
 
-feodal-panel &
-panel_pid=$!
+helper_pids=
+start_optional() {
+    helper=$1
+    shift
+    if command -v "$helper" >/dev/null 2>&1; then
+        "$helper" "$@" &
+        helper_pids="$helper_pids $!"
+    else
+        printf 'feodal-session: warning: optional helper not found: %s\n' "$helper" >&2
+    fi
+}
+
+run_optional() {
+    helper=$1
+    shift
+    if command -v "$helper" >/dev/null 2>&1; then
+        "$helper" "$@" ||
+            printf 'feodal-session: warning: optional helper failed: %s\n' "$helper" >&2
+    else
+        printf 'feodal-session: warning: optional helper not found: %s\n' "$helper" >&2
+    fi
+}
+
 cleanup() {
-    kill "$panel_pid" 2>/dev/null || true
-    wait "$panel_pid" 2>/dev/null || true
+    for pid in $helper_pids; do
+        kill "$pid" 2>/dev/null || true
+    done
+    for pid in $helper_pids; do
+        wait "$pid" 2>/dev/null || true
+    done
 }
 trap cleanup EXIT
+
+start_optional feodal-panel
+start_optional nm-applet
+start_optional pasystray
+start_optional xfce4-power-manager --no-daemon
+start_optional dunst -config /etc/xdg/feodal/dunstrc
+start_optional trayer --edge bottom --align right --widthtype pixel --width 156 \
+    --heighttype pixel --height 42 --margin 5 --distance 5 --transparent false \
+    --tint 0x101923 --SetDockType true --SetPartialStrut false
+run_optional feodal-input --apply
+start_optional "${FEODAL_POLKIT_AGENT:-/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1}"
 
 wm_status=0
 openbox --config-file /etc/xdg/feodal/openbox.xml || wm_status=$?
