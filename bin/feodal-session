@@ -6,7 +6,21 @@ export XDG_SESSION_TYPE=x11
 if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
     exec dbus-run-session -- "$0" "$@"
 fi
+
+if command -v dbus-update-activation-environment >/dev/null 2>&1; then
+    dbus-update-activation-environment --systemd DISPLAY XAUTHORITY \
+        XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE ||
+        printf '%s\n' 'feodal-session: warning: could not update D-Bus activation environment' >&2
+fi
+
 feodal-panel &
 panel_pid=$!
-trap 'kill "$panel_pid" 2>/dev/null || true' EXIT
-openbox --config-file /etc/xdg/feodal/openbox.xml
+cleanup() {
+    kill "$panel_pid" 2>/dev/null || true
+    wait "$panel_pid" 2>/dev/null || true
+}
+trap cleanup EXIT
+
+wm_status=0
+openbox --config-file /etc/xdg/feodal/openbox.xml || wm_status=$?
+exit "$wm_status"
