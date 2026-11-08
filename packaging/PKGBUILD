@@ -1,18 +1,20 @@
 pkgname=feodal-shell
-pkgver=0.3.0
+pkgver=0.4.0
 pkgrel=1
 pkgdesc='Lightweight native GTK desktop shell for Feodal Linux'
 arch=('any')
 license=('MIT')
 optdepends=('firefox: web browser' 'mousepad: text editor' 'xarchiver: archive manager' 'mpv: media player' 'steam: game client (multilib)' 'nvidia-prime: prime-run for compatible NVIDIA graphics')
-depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu')
+depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu' 'trayer' 'pasystray' 'xfce4-power-manager' 'dunst' 'libnotify' 'xfce4-screenshooter' 'arandr' 'xorg-setxkbmap' 'polkit-gnome' 'gvfs' 'udisks2' 'thunar-volman')
 
 package() {
     local root="$startdir/.."
     install -Dm644 "$root/shell/feodal_panel.py" "$pkgdir/usr/lib/feodal/feodal_panel.py"
-    for module in feodal_settings feodal_preferences feodal_hardware; do
+    for module in feodal_settings feodal_preferences feodal_hardware feodal_input; do
         install -Dm644 "$root/shell/$module.py" "$pkgdir/usr/lib/feodal/$module.py"
     done
+    install -Dm755 "$root/bin/feodal-input" "$pkgdir/usr/bin/feodal-input"
+    install -Dm644 "$root/config/dunstrc" "$pkgdir/etc/xdg/feodal/dunstrc"
     install -Dm755 "$root/bin/feodal-hardware" "$pkgdir/usr/bin/feodal-hardware"
     install -Dm644 "$root/config/feodal-settings.desktop" "$pkgdir/usr/share/applications/feodal-settings.desktop"
     install -Dm755 "$root/bin/feodal-panel" "$pkgdir/usr/bin/feodal-panel"

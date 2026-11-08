@@ -5,6 +5,7 @@ from gi.repository import GLib, Gtk
 
 from feodal_hardware import collect_status
 from feodal_preferences import load_mode, save_mode
+from feodal_input import load_layout
 
 GUIDE = '''ДЛЯ MX330 / INTEL / 8 ГБ
 
@@ -119,7 +120,26 @@ class ControlCenter(Gtk.Window):
                                ('Звук', ['pavucontrol']), ('Мережеві з’єднання', ['nm-connection-editor']),
                                ('Файли', ['thunar']), ('Термінал', ['xterm'])]:
             tools.pack_start(shell.button(title, lambda _, cmd=command: shell.run(cmd)), False, False, 0)
-        notebook.append_page(tools, Gtk.Label(label='Інструменти'))
+        notebook.append_page(self.scrolled(tools), Gtk.Label(label='Інструменти'))
+        desktop = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
+        desktop.set_border_width(14)
+        desktop.pack_start(self.label('Розкладка клавіатури'), False, False, 0)
+        self.keyboard = Gtk.ComboBoxText()
+        for value, title in [('us,ua', 'English + Українська — Alt+Shift'), ('us', 'English'), ('ua', 'Українська')]:
+            self.keyboard.append(value, title)
+        self.keyboard.set_active_id(load_layout())
+        desktop.pack_start(self.keyboard, False, False, 0)
+        desktop.pack_start(shell.button('Застосувати розкладку', lambda _: shell.run(
+            ['feodal-input', '--set', self.keyboard.get_active_id()])), False, False, 0)
+        for title, command in [('Екран і роздільність', ['arandr']),
+                               ('Живлення, батарея та яскравість', ['xfce4-power-manager-settings']),
+                               ('Знімок екрана', ['xfce4-screenshooter']),
+                               ('Перевірити сповіщення', ['notify-send', 'Feodal', 'Сповіщення працюють.'])]:
+            desktop.pack_start(shell.button(title, lambda _, cmd=command: shell.run(cmd)), False, False, 0)
+        desktop.pack_start(self.label('Яскравість і батарея доступні лише за підтримки обладнання.\n'
+                                     'Сон і закриття кришки потребують перевірки на ноутбуці.\n'
+                                     'Блокування екрана ще не налаштоване — не вважай сон захистом.'), False, False, 0)
+        notebook.append_page(self.scrolled(desktop), Gtk.Label(label='Робочий стіл'))
         guide = self.label(GUIDE)
         guide.set_selectable(True)
         guide.set_margin_start(14)

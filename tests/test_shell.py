@@ -58,6 +58,20 @@ class ShellTests(unittest.TestCase):
             buttons[0].clicked()
             run.assert_called_once_with(['firefox'])
 
+    def test_power_actions_require_confirmation_and_handle_denial(self):
+        with patch.object(self.shell, 'confirm_power', return_value=False), \
+                patch.object(module.subprocess, 'run') as run:
+            self.shell.power_action('poweroff')
+            self.shell.power_action('unknown')
+            run.assert_not_called()
+        with patch.object(self.shell, 'confirm_power', return_value=True), \
+                patch.object(module.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1)) as run, \
+                patch.object(self.shell, 'error') as error:
+            self.shell.power_action('reboot')
+            pump()
+            run.assert_called_once_with(['systemctl', 'reboot'], capture_output=True, text=True, timeout=15)
+            error.assert_called_once()
+
     def test_application_search(self):
         app = module.Gio.AppInfo.create_from_commandline('xterm', 'Feodal Test Terminal', 0)
         self.assertTrue(module.matching(app, 'TEST terminal'))
