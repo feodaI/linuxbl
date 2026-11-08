@@ -2,6 +2,12 @@
 
 This prototype builds an x86_64 live ISO from the installed Arch Linux `releng` archiso profile. It uses Arch's standard `linux` kernel and adds the locally built `feodal-shell` package plus Openbox, Xorg/Xinit, GTK 3, Python/GObject, and NetworkManager from the official repositories. NetworkManager is enabled in the live environment and uses systemd-resolved for DNS. The inherited systemd-networkd service/socket and standalone iwd service are masked to prevent competing network managers. SSH is masked by default; the live system does not expose a remote login service. PipeWire, pipewire-pulse and WirePlumber provide the audio stack.
 
+Desktop packages are listed in `iso/packages.desktop`: official Arch Firefox,
+Ukrainian language pack, Mousepad, Xarchiver, ZIP/unzip, mpv and Noto/emoji fonts.
+The browser homepage is local and user-editable; only its first-run tour is hidden.
+Firefox security isolation and updates are not disabled. See [browser defaults](browser.md).
+These applications are not autostarted by the session.
+
 The live filesystem and initramfs use zstd level 6 instead of the inherited xz compression, trading image size for lower compression/decompression cost. The initramfs retains local-media boot hooks but omits PXE/NFS/HTTP/NBD boot support; this profile is for local ISO/USB boot, not netboot.
 
 The live profile uses `zram-generator` with zstd, a logical swap size of half RAM capped at 4096 MiB, and priority 100. Compressed pages still use physical memory; this is not extra RAM or an FPS guarantee. The live account is the unprivileged `feodal` user; tty1 logs it in automatically and starts `feodal-session` through Xinit. If X fails, the user is left at a console prompt.
@@ -15,12 +21,12 @@ sudo ./scripts/build-iso.sh /path/to/feodal-shell-<version>-any.pkg.tar.* [outpu
 ```
 
 The image filename uses the shell package version (for example,
-`feodal-0.2.0-2-x86_64.iso`) so different package versions do not overwrite the
+`feodal-0.3.0-1-x86_64.iso`) so different package versions do not overwrite the
 previous dated prototype.
 
 The output directory defaults to `./out` and is not cleaned or deleted. The package must have the `feodal-shell` package name; it is staged in a temporary local file repository created with `repo-add`, allowing pacman to resolve the shell and its official repository dependencies. Pass a locally built package you trust. The installed releng profile can be selected with `ARCHISO_RELENG_PROFILE` if it is not at `/usr/share/archiso/configs/releng`.
 
-Boot the resulting ISO as a live system. This prototype has no Feodal installer or automatic disk-writing workflow. Arch releng's inherited installation/rescue utilities (including archinstall) remain present; do not treat them as a tested Feodal installation path. It is not a claim of hardware compatibility, and physical hardware remains untested. The initial 0.2 image was boot-tested in QEMU with both BIOS and UEFI (Secure Boot off); see [verification](verification-0.2.md). The original dated 0.1 image has a separate [historical verification record](verification.md).
+Boot the resulting ISO as a live system. This prototype has no Feodal installer or automatic disk-writing workflow. Arch releng's inherited installation/rescue utilities (including archinstall) remain present; do not treat them as a tested Feodal installation path. It is not a claim of hardware compatibility, and physical hardware remains untested. The 0.3 image was boot-tested in QEMU with both BIOS and UEFI (Secure Boot off); see [verification](verification-0.3.md). Earlier images have separate [0.2](verification-0.2.md) and [0.1](verification.md) verification records.
 
 ## NVIDIA and hardware caveats
 

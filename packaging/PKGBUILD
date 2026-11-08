@@ -1,10 +1,10 @@
 pkgname=feodal-shell
-pkgver=0.2.0
-pkgrel=2
+pkgver=0.3.0
+pkgrel=1
 pkgdesc='Lightweight native GTK desktop shell for Feodal Linux'
 arch=('any')
 license=('MIT')
-optdepends=('steam: game client (multilib)' 'nvidia-prime: prime-run for compatible NVIDIA graphics')
+optdepends=('firefox: web browser' 'mousepad: text editor' 'xarchiver: archive manager' 'mpv: media player' 'steam: game client (multilib)' 'nvidia-prime: prime-run for compatible NVIDIA graphics')
 depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu')
 
 package() {
@@ -19,5 +19,8 @@ package() {
     install -Dm755 "$root/bin/feodal-session" "$pkgdir/usr/bin/feodal-session"
     install -Dm644 "$root/config/openbox.xml" "$pkgdir/etc/xdg/feodal/openbox.xml"
     install -Dm644 "$root/config/feodal.desktop" "$pkgdir/usr/share/xsessions/feodal.desktop"
+    install -Dm644 "$root/docs/browser.md" "$pkgdir/usr/share/doc/feodal/browser.md"
+    install -Dm644 "$root/assets/browser/start.html" "$pkgdir/usr/share/feodal/browser/start.html"
+    install -Dm644 "$root/config/feodal-mimeapps.list" "$pkgdir/etc/xdg/feodal-mimeapps.list"
     install -Dm644 "$root/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

@@ -1,0 +1,12 @@
+[Default Applications]
+x-scheme-handler/http=firefox.desktop
+x-scheme-handler/https=firefox.desktop
+text/html=firefox.desktop
+application/xhtml+xml=firefox.desktop
+text/plain=org.xfce.mousepad.desktop
+application/zip=xarchiver.desktop
+application/x-7z-compressed=xarchiver.desktop
+application/x-rar=xarchiver.desktop
+video/mp4=mpv.desktop
+video/webm=mpv.desktop
+audio/mpeg=mpv.desktop

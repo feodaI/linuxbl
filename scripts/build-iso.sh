@@ -84,5 +84,9 @@ for package in feodal-shell openbox xorg-server xorg-xinit gtk3 python python-go
     add_package "$package"
 done
 
+while IFS= read -r package || [[ -n $package ]]; do
+    [[ -z $package || $package == \#* ]] || add_package "$package"
+done < "$script_dir/iso/packages.desktop"
+
 mkarchiso -v -w "$work_root/work" -o "$out_dir" "$profile"
 printf 'ISO build complete. Artifacts: %s\n' "$out_dir"
