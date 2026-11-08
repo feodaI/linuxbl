@@ -6,7 +6,12 @@ Desktop packages are listed in `iso/packages.desktop`: official Arch Firefox,
 Ukrainian language pack, Mousepad, Xarchiver, ZIP/unzip, mpv and Noto/emoji fonts.
 The browser homepage is local and user-editable; only its first-run tour is hidden.
 Firefox security isolation and updates are not disabled. See [browser defaults](browser.md).
-These applications are not autostarted by the session.
+These applications are not autostarted by the session. Feodal 0.4 adds dedicated
+session helpers for the XEmbed tray, network/audio indicators, power management,
+notifications and policy authorization; see [desktop behavior](desktop.md).
+Run `scripts/check-desktop-session.sh` as root inside the booted VM to verify
+these helper processes and notification/XKB services without triggering power
+actions or changing hardware settings.
 
 The live filesystem and initramfs use zstd level 6 instead of the inherited xz compression, trading image size for lower compression/decompression cost. The initramfs retains local-media boot hooks but omits PXE/NFS/HTTP/NBD boot support; this profile is for local ISO/USB boot, not netboot.
 
@@ -21,12 +26,12 @@ sudo ./scripts/build-iso.sh /path/to/feodal-shell-<version>-any.pkg.tar.* [outpu
 ```
 
 The image filename uses the shell package version (for example,
-`feodal-0.3.0-1-x86_64.iso`) so different package versions do not overwrite the
+`feodal-0.4.0-2-x86_64.iso`) so different package versions do not overwrite the
 previous dated prototype.
 
 The output directory defaults to `./out` and is not cleaned or deleted. The package must have the `feodal-shell` package name; it is staged in a temporary local file repository created with `repo-add`, allowing pacman to resolve the shell and its official repository dependencies. Pass a locally built package you trust. The installed releng profile can be selected with `ARCHISO_RELENG_PROFILE` if it is not at `/usr/share/archiso/configs/releng`.
 
-Boot the resulting ISO as a live system. This prototype has no Feodal installer or automatic disk-writing workflow. Arch releng's inherited installation/rescue utilities (including archinstall) remain present; do not treat them as a tested Feodal installation path. It is not a claim of hardware compatibility, and physical hardware remains untested. The 0.3 image was boot-tested in QEMU with both BIOS and UEFI (Secure Boot off); see [verification](verification-0.3.md). Earlier images have separate [0.2](verification-0.2.md) and [0.1](verification.md) verification records.
+Boot the resulting ISO as a live system. This prototype has no Feodal installer or automatic disk-writing workflow. Arch releng's inherited installation/rescue utilities (including archinstall) remain present; do not treat them as a tested Feodal installation path. It is not a claim of hardware compatibility, and physical hardware remains untested. The initial 0.4.0-1 image was boot-tested in BIOS and UEFI QEMU; the final 0.4.0-2 tray-layout fix was retested in BIOS. See [current verification](verification-0.4.md) and [0.3 verification](verification-0.3.md). Earlier images have separate [0.2](verification-0.2.md) and [0.1](verification.md) verification records.
 
 ## NVIDIA and hardware caveats
 

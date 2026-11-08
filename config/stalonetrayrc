@@ -1,0 +1,12 @@
+geometry 6x1-5-5
+icon_size 24
+slot_size 24
+max_geometry 6x1
+decorations none
+window_type dock
+window_strut none
+window_layer top
+background "#101923"
+grow_gravity E
+icon_gravity SE
+sticky true

@@ -11,6 +11,10 @@ ACTIVATION_VARS = (
     'DISPLAY XAUTHORITY XDG_CURRENT_DESKTOP '
     'XDG_SESSION_DESKTOP XDG_SESSION_TYPE'
 )
+DAEMONS = (
+    'feodal-panel', 'nm-applet', 'pasystray', 'xfce4-power-manager',
+    'dunst', 'stalonetray', 'polkit-gnome-authentication-agent-1',
+)
 
 
 class SessionTests(unittest.TestCase):
@@ -20,20 +24,33 @@ class SessionTests(unittest.TestCase):
         self.directory = Path(self.temp.name)
         self.bindir = self.directory / 'bin'
         self.bindir.mkdir()
+        self.started_dir = self.directory / 'started'
+        self.started_dir.mkdir()
         self.env = os.environ.copy()
         self.env.update({
-            'PATH': str(self.bindir) + os.pathsep + self.env['PATH'],
+            'PATH': str(self.bindir),
             'DBUS_SESSION_BUS_ADDRESS': 'unix:path=/mock-session',
             'DISPLAY': ':42',
             'XAUTHORITY': '/tmp/mock-xauthority',
             'CALL_LOG': str(self.directory / 'calls'),
+            'STARTED_DIR': str(self.started_dir),
+            'EXPECTED_HELPERS': ' '.join(DAEMONS),
             'PANEL_STOP_FILE': str(self.directory / 'panel-stopped'),
+            'FEODAL_POLKIT_AGENT': 'polkit-gnome-authentication-agent-1',
         })
         self.env.pop('DBUS_LOG', None)
-        self.write_executable('feodal-panel', '''\
+        for daemon in DAEMONS:
+            extra = ': > "$PANEL_STOP_FILE"' if daemon == 'feodal-panel' else ':'
+            self.write_executable(daemon, f'''\
 #!/bin/sh
-trap 'printf stopped > "$PANEL_STOP_FILE"; exit 0' TERM INT
-while :; do sleep 0.02; done
+printf 'started {daemon} %s\\n' "$*" >> "$CALL_LOG"
+trap 'printf "stopped {daemon}\\n" >> "$CALL_LOG"; {extra}; exit 0' TERM INT
+: > "$STARTED_DIR/{daemon}"
+while :; do /bin/sleep 0.02; done
+''')
+        self.write_executable('feodal-input', '''\
+#!/bin/sh
+printf 'input %s\\n' "$*" >> "$CALL_LOG"
 ''')
         self.write_executable('openbox', '''\
 #!/bin/sh
@@ -41,6 +58,14 @@ printf 'openbox %s\\n' "$*" >> "$CALL_LOG"
 printf 'DISPLAY=%s\\nXAUTHORITY=%s\\nXDG_CURRENT_DESKTOP=%s\\nXDG_SESSION_DESKTOP=%s\\nXDG_SESSION_TYPE=%s\\n' \\
     "${DISPLAY-}" "${XAUTHORITY-}" "${XDG_CURRENT_DESKTOP-}" \\
     "${XDG_SESSION_DESKTOP-}" "${XDG_SESSION_TYPE-}" >> "$CALL_LOG"
+for helper in $EXPECTED_HELPERS; do
+    attempts=0
+    while [ ! -f "$STARTED_DIR/$helper" ] && [ "$attempts" -lt 500 ]; do
+        /bin/sleep 0.01
+        attempts=$((attempts + 1))
+    done
+    [ -f "$STARTED_DIR/$helper" ] || exit 91
+done
 exit "${WM_STATUS:-0}"
 ''')
         self.write_executable('dbus-update-activation-environment', '''\
@@ -59,7 +84,21 @@ exit "${UPDATER_STATUS:-0}"
 
     def run_session(self, env=None):
         return subprocess.run([str(SESSION)], env=env or self.env, text=True,
-                              capture_output=True, timeout=5)
+                              capture_output=True, timeout=10)
+
+    def test_starts_optional_helpers_and_cleans_up_their_processes(self):
+        result = self.run_session()
+        log = Path(self.env['CALL_LOG']).read_text()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for daemon in DAEMONS:
+            self.assertIn(f'started {daemon} ', log)
+            self.assertIn(f'stopped {daemon}', log)
+        self.assertIn('started xfce4-power-manager --no-daemon', log)
+        self.assertIn('started dunst -config /etc/xdg/feodal/dunstrc', log)
+        self.assertIn('started stalonetray -c /etc/xdg/feodal/stalonetrayrc', log)
+        self.assertIn('input --apply', log)
+        self.assertLess(log.index('input --apply'), log.index('openbox '))
 
     def test_updates_only_requested_activation_environment_before_wm(self):
         result = self.run_session()
@@ -106,14 +145,32 @@ exec "$@"
         self.assertIn('warning:', result.stderr)
         self.assertIn('openbox ', Path(self.env['CALL_LOG']).read_text())
 
-    def test_wm_status_is_preserved_and_panel_is_stopped(self):
+    def test_missing_optional_helpers_warn_but_wm_runs(self):
+        optional = ('nm-applet', 'pasystray', 'xfce4-power-manager', 'dunst',
+                    'stalonetray', 'polkit-gnome-authentication-agent-1',
+                    'feodal-input')
+        for helper in optional:
+            (self.bindir / helper).unlink()
+        self.env['EXPECTED_HELPERS'] = 'feodal-panel'
+
+        result = self.run_session()
+
+        self.assertEqual(result.returncode, 0, result.stderr)
+        for helper in optional:
+            self.assertIn(f'optional helper not found: {helper}', result.stderr)
+        self.assertIn('openbox ', Path(self.env['CALL_LOG']).read_text())
+
+    def test_wm_status_is_preserved_and_all_helpers_are_stopped(self):
         self.env['WM_STATUS'] = '23'
 
         result = self.run_session()
+        log = Path(self.env['CALL_LOG']).read_text()
 
         self.assertEqual(result.returncode, 23, result.stderr)
         self.assertTrue((self.directory / 'panel-stopped').exists(),
                         'session exit should stop the panel')
+        for daemon in DAEMONS:
+            self.assertIn(f'stopped {daemon}', log)
 
 
 if __name__ == '__main__':

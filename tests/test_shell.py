@@ -58,6 +58,33 @@ class ShellTests(unittest.TestCase):
             buttons[0].clicked()
             run.assert_called_once_with(['firefox'])
 
+    def test_panel_leaves_screen_space_for_external_tray(self):
+        self.shell.layout()
+        self.assertEqual(self.shell.panel.get_size_request()[0], self.shell.rect.width - 166)
+
+    def test_language_indicator_tracks_xkb_group(self):
+        with patch.object(module, 'current_group', return_value=1), \
+                patch.object(module, 'load_layout', return_value='us,ua'):
+            self.shell.tick()
+            self.assertEqual(self.shell.language.get_label(), 'UK')
+        with patch.object(module, 'current_group', side_effect=RuntimeError('no display')):
+            self.shell.tick()
+            self.assertEqual(self.shell.language.get_label(), '—')
+
+    def test_power_actions_require_confirmation_and_handle_denial(self):
+        with patch.object(self.shell, 'confirm_power', return_value=False), \
+                patch.object(module.subprocess, 'run') as run:
+            self.shell.power_action('poweroff')
+            self.shell.power_action('unknown')
+            run.assert_not_called()
+        with patch.object(self.shell, 'confirm_power', return_value=True), \
+                patch.object(module.subprocess, 'run', return_value=subprocess.CompletedProcess([], 1)) as run, \
+                patch.object(self.shell, 'error') as error:
+            self.shell.power_action('reboot')
+            pump()
+            run.assert_called_once_with(['systemctl', 'reboot'], capture_output=True, text=True, timeout=15)
+            error.assert_called_once()
+
     def test_application_search(self):
         app = module.Gio.AppInfo.create_from_commandline('xterm', 'Feodal Test Terminal', 0)
         self.assertTrue(module.matching(app, 'TEST terminal'))
@@ -139,6 +166,13 @@ class ShellTests(unittest.TestCase):
             self.assertIn('test-kernel', center.status_label.get_text())
             self.assertTrue(center.refresh_button.get_sensitive())
             self.assertIn('Test hardware only', status_text(snapshot))
+            with patch('feodal_settings.apply_layout') as apply, patch('feodal_settings.save_layout') as save:
+                center.keyboard.set_active_id('ua')
+                center.apply_keyboard()
+                pump()
+                apply.assert_called_once_with('ua')
+                save.assert_called_once_with('ua')
+                self.assertIn('збережено', center.keyboard_note.get_text())
             center.mode.set_active_id('nvidia')
             self.assertEqual(module.load_mode(), 'nvidia')
             center.destroy()
