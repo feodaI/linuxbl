@@ -1,0 +1,7 @@
+[Desktop Entry]
+Name=Feodal
+Comment=Lightweight Feodal X11 desktop
+Exec=feodal-session
+TryExec=feodal-session
+Type=Application
+DesktopNames=Feodal

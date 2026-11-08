@@ -1,0 +1,12 @@
+#!/bin/sh
+set -eu
+export XDG_CURRENT_DESKTOP=Feodal
+export XDG_SESSION_DESKTOP=feodal
+export XDG_SESSION_TYPE=x11
+if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
+    exec dbus-run-session -- "$0" "$@"
+fi
+feodal-panel &
+panel_pid=$!
+trap 'kill "$panel_pid" 2>/dev/null || true' EXIT
+openbox --config-file /etc/xdg/feodal/openbox.xml

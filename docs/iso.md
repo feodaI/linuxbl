@@ -1,0 +1,48 @@
+# Feodal Linux ISO prototype
+
+This prototype builds an x86_64 live ISO from the installed Arch Linux `releng` archiso profile. It uses Arch's standard `linux` kernel and adds the locally built `feodal-shell` package plus Openbox, Xorg/Xinit, GTK 3, Python/GObject, and NetworkManager from the official repositories. NetworkManager is enabled in the live environment and uses systemd-resolved for DNS. The inherited systemd-networkd service/socket and standalone iwd service are masked to prevent competing network managers. SSH is masked by default; the live system does not expose a remote login service. PipeWire, pipewire-pulse and WirePlumber provide the audio stack.
+
+The live filesystem and initramfs use zstd level 6 instead of the inherited xz compression, trading image size for lower compression/decompression cost. The initramfs retains local-media boot hooks but omits PXE/NFS/HTTP/NBD boot support; this profile is for local ISO/USB boot, not netboot.
+
+The live profile uses `zram-generator` with zstd, a logical swap size of half RAM capped at 4096 MiB, and priority 100. Compressed pages still use physical memory; this is not extra RAM or an FPS guarantee. The live account is the unprivileged `feodal` user; tty1 logs it in automatically and starts `feodal-session` through Xinit. If X fails, the user is left at a console prompt.
+
+## Build
+
+Build `feodal-shell` first with Arch packaging tools. On an Arch Linux build host (or an Arch virtual machine), install the `archiso` package and ensure `pacman`, `repo-add`, and `mkarchiso` are available. The script must run as root because `mkarchiso` requires it; it does not install packages on the host or write to a target disk. It downloads packages only through the standard pacman repositories configured by releng and retains its temporary work directory for inspection. It never recursively deletes the work tree: an interrupted mkarchiso run may leave mounts there. The directory path is printed on exit; check for mounted filesystems before manually cleaning it.
+
+```sh
+sudo ./scripts/build-iso.sh /path/to/feodal-shell-<version>-any.pkg.tar.* [output-directory]
+```
+
+The output directory defaults to `./out` and is not cleaned or deleted. The package must have the `feodal-shell` package name; it is staged in a temporary local file repository created with `repo-add`, allowing pacman to resolve the shell and its official repository dependencies. Pass a locally built package you trust. The installed releng profile can be selected with `ARCHISO_RELENG_PROFILE` if it is not at `/usr/share/archiso/configs/releng`.
+
+Boot the resulting ISO as a live system. This prototype has no Feodal installer or automatic disk-writing workflow. Arch releng's inherited installation/rescue utilities (including archinstall) remain present; do not treat them as a tested Feodal installation path. It is not a claim of hardware compatibility, and physical hardware remains untested. The 2026-11-08 ISO was built and boot-tested in QEMU with both BIOS and UEFI (Secure Boot off); see [verification](verification.md).
+
+## NVIDIA and hardware caveats
+
+No proprietary NVIDIA driver, legacy 580xx AUR package, or other AUR package is bundled. In particular, do not assume NVIDIA MX330 support: it may require a legacy driver path such as 580xx, which is outside this prototype and is not validated here. Physical hardware support remains untested; no compatibility guarantee is made.
+
+## Virtual-machine smoke test
+
+On an Arch host install `qemu-system-x86`; on Ubuntu/Debian run
+`sudo ./scripts/setup-ui-tests.sh --with-vm` to install verification tools.
+From a graphical session:
+
+```sh
+./scripts/boot-vm.sh out/feodal-<date>-x86_64.iso
+```
+
+The script boots the ISO with software emulation, 4 GiB RAM and **no attached host
+or virtual hard disk**. It does not install or modify the host operating system.
+No SSH forwarding is enabled. Close QEMU to discard the ephemeral live session.
+Software rendering/emulation is not suitable for measuring game FPS.
+
+Check that tty1 opens the Feodal desktop as user `feodal`, the launcher opens and
+starts a terminal, networking has a single manager, audio services are running,
+and `zramctl` plus `swapon --show` list `/dev/zram0`. None of these tests validates
+the proprietary NVIDIA driver or a physical Wi-Fi/audio device.
+
+Run `scripts/check-live-session.sh` as root **inside** the booted live system for
+the service/session smoke checks. The script checks read-only state; it does not
+install drivers, change partitions, or validate physical audio output. Secure Boot
+signing is not configured for this prototype.
