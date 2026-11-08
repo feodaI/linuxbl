@@ -49,6 +49,15 @@ class ShellTests(unittest.TestCase):
     def test_gl_tuning_is_process_local(self):
         self.assertEqual(os.environ.get('GDK_GL'), original_gdk_gl)
 
+    def test_panel_browser_button_uses_official_firefox(self):
+        row = self.shell.panel.get_child()
+        buttons = [button for button in row.get_children()
+                   if isinstance(button, Gtk.Button) and button.get_label() == 'Firefox']
+        self.assertEqual(len(buttons), 1)
+        with patch.object(self.shell, 'run') as run:
+            buttons[0].clicked()
+            run.assert_called_once_with(['firefox'])
+
     def test_application_search(self):
         app = module.Gio.AppInfo.create_from_commandline('xterm', 'Feodal Test Terminal', 0)
         self.assertTrue(module.matching(app, 'TEST terminal'))

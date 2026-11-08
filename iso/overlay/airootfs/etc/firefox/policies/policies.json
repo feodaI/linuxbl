@@ -1,0 +1,9 @@
+{
+  "policies": {
+    "Homepage": {
+      "URL": "file:///usr/share/feodal/browser/start.html",
+      "Locked": false,
+      "StartPage": "homepage"
+    }
+  }
+}

@@ -114,7 +114,9 @@ class ControlCenter(Gtk.Window):
         notebook.append_page(gaming, Gtk.Label(label='Ігри / GPU'))
         tools = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=10)
         tools.set_border_width(14)
-        for title, command in [('Звук', ['pavucontrol']), ('Мережеві з’єднання', ['nm-connection-editor']),
+        for title, command in [('Firefox', ['firefox']), ('Редактор текстів', ['mousepad']),
+                               ('Архіви', ['xarchiver']), ('Медіаплеєр', ['mpv', '--player-operation-mode=pseudo-gui']),
+                               ('Звук', ['pavucontrol']), ('Мережеві з’єднання', ['nm-connection-editor']),
                                ('Файли', ['thunar']), ('Термінал', ['xterm'])]:
             tools.pack_start(shell.button(title, lambda _, cmd=command: shell.run(cmd)), False, False, 0)
         notebook.append_page(tools, Gtk.Label(label='Інструменти'))

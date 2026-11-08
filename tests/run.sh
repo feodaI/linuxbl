@@ -5,6 +5,7 @@ python3 -m py_compile shell/*.py
 sh -n bin/feodal-panel bin/feodal-session bin/feodal-hardware
 bash -n packaging/PKGBUILD scripts/build-iso.sh iso/overlay/airootfs/etc/mkinitcpio.conf.d/feodal.conf
 sh -n scripts/setup-ui-tests.sh scripts/boot-vm.sh scripts/check-live-session.sh
+python3 tests/test_desktop_defaults.py
 python3 tests/test_memory_profile.py
 python3 tests/test_preferences.py
 python3 tests/test_hardware.py

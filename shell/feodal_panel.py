@@ -79,7 +79,7 @@ class Shell:
         self.steam_busy = False
         self.menu_button = self.button('◈  FEODAL', self.toggle_launcher)
         row.pack_start(self.menu_button, False, False, 0)
-        for label, command in [('Файли', ['thunar']), ('Термінал', ['xterm'])]:
+        for label, command in [('Firefox', ['firefox']), ('Файли', ['thunar']), ('Термінал', ['xterm'])]:
             row.pack_start(self.button(label, lambda _, cmd=command: self.run(cmd)), False, False, 0)
         row.pack_start(self.button('Steam', lambda _: self.launch_steam()), False, False, 0)
         row.pack_start(self.button('Налаштування', self.open_settings), False, False, 0)
