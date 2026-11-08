@@ -1,0 +1,28 @@
+[global]
+    font = "Sans 10"
+    background = "#101923"
+    foreground = "#e6edf3"
+    frame_color = "#38536b"
+    frame_width = 1
+    width = 360
+    height = 120
+    origin = top-right
+    offset = 12x12
+    notification_limit = 5
+    corner_radius = 6
+
+[urgency_low]
+    background = "#101923"
+    foreground = "#aab8c5"
+    timeout = 5
+
+[urgency_normal]
+    background = "#101923"
+    foreground = "#e6edf3"
+    timeout = 8
+
+[urgency_critical]
+    background = "#3b1f25"
+    foreground = "#fff1f0"
+    frame_color = "#d16b72"
+    timeout = 0
