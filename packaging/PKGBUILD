@@ -3,14 +3,14 @@ pkgver=0.5.0
 pkgrel=1
 pkgdesc='Lightweight native GTK desktop shell for Feodal Linux'
 arch=('any')
-license=('MIT')
+license=('MIT' 'CC-BY-3.0')
 optdepends=('firefox: web browser' 'mousepad: text editor' 'xarchiver: archive manager' 'mpv: media player' 'steam: game client (multilib)' 'nvidia-prime: prime-run for compatible NVIDIA graphics')
 depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu' 'stalonetray' 'pasystray' 'xfce4-power-manager' 'dunst' 'libnotify' 'xfce4-screenshooter' 'arandr' 'xorg-setxkbmap' 'polkit-gnome' 'gvfs' 'udisks2' 'thunar-volman')
 
 package() {
     local root="$startdir/.."
     install -Dm644 "$root/shell/feodal_panel.py" "$pkgdir/usr/lib/feodal/feodal_panel.py"
-    for module in feodal_settings feodal_preferences feodal_hardware feodal_input; do
+    for module in feodal_settings feodal_preferences feodal_hardware feodal_input feodal_wallpaper; do
         install -Dm644 "$root/shell/$module.py" "$pkgdir/usr/lib/feodal/$module.py"
     done
     install -Dm755 "$root/bin/feodal-input" "$pkgdir/usr/bin/feodal-input"
@@ -26,6 +26,8 @@ package() {
     install -Dm644 "$root/config/feodal.desktop" "$pkgdir/usr/share/xsessions/feodal.desktop"
     install -Dm644 "$root/docs/browser.md" "$pkgdir/usr/share/doc/feodal/browser.md"
     install -Dm644 "$root/assets/browser/start.html" "$pkgdir/usr/share/feodal/browser/start.html"
+    install -Dm644 "$root/assets/wallpaper/kingdom.jpg" "$pkgdir/usr/share/feodal/wallpapers/kingdom.jpg"
+    install -Dm644 "$root/assets/wallpaper/CREDITS" "$pkgdir/usr/share/feodal/wallpapers/CREDITS"
     install -Dm644 "$root/config/feodal-mimeapps.list" "$pkgdir/etc/xdg/feodal-mimeapps.list"
     install -Dm644 "$root/LICENSE" "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
 }

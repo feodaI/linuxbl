@@ -8,6 +8,7 @@ sh -n scripts/setup-ui-tests.sh scripts/boot-vm.sh scripts/check-live-session.sh
 python3 tests/test_desktop_defaults.py
 python3 tests/test_memory_profile.py
 python3 tests/test_input.py
+python3 tests/test_wallpaper.py
 python3 tests/test_preferences.py
 python3 tests/test_hardware.py
 python3 tests/test_session.py

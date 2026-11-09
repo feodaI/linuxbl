@@ -1,5 +1,6 @@
 #!/usr/bin/env python3
 """Small X11 desktop shell; Openbox owns window management."""
+import ctypes
 import datetime
 import os
 import shutil
@@ -30,6 +31,7 @@ else:
 from feodal_preferences import load_mode, steam_command
 from feodal_settings import ControlCenter, diagnose_async
 from feodal_input import current_group, load_layout
+from feodal_wallpaper import load_scaled
 
 PANEL_HEIGHT = 40
 TRAY_RESERVE = 166
@@ -167,6 +169,14 @@ def draw_glyph(widget, cr, name):
     return False
 
 
+def release_free_memory():
+    """Return freed image-decoder heap to the OS (glibc only; no-op elsewhere)."""
+    try:
+        ctypes.CDLL('libc.so.6').malloc_trim(0)
+    except (OSError, AttributeError):
+        pass
+
+
 # Independent of the live system's locale.
 WEEKDAYS = ('пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'нд')
 MONTHS = ('січ', 'лют', 'бер', 'кві', 'тра', 'чер', 'лип', 'сер', 'вер', 'жов', 'лис', 'гру')
@@ -240,6 +250,9 @@ class Shell:
         self.desktop.set_decorated(False)
         self.desktop.set_skip_taskbar_hint(True)
         self.desktop.set_skip_pager_hint(True)
+        self.wallpaper = None
+        self.wallpaper_size = None
+        self.wallpaper_offset = (0, 0)
         canvas = Gtk.DrawingArea()
         canvas.connect('draw', self.draw_desktop)
         self.desktop.add(canvas)
@@ -296,19 +309,32 @@ class Shell:
         self.panel.move(rect.x, rect.y + rect.height - PANEL_HEIGHT)
         # Keep the separate tray window outside this dock, independent of stacking order.
         self.panel.set_size_request(max(1, rect.width - TRAY_RESERVE), PANEL_HEIGHT)
+        if (rect.width, rect.height) != self.wallpaper_size:
+            self.reload_wallpaper()
 
-    @staticmethod
-    def draw_desktop(widget, cr):
+    def reload_wallpaper(self):
+        width, height = self.rect.width, self.rect.height
+        self.wallpaper_size = (width, height)
+        pixbuf = load_scaled(width, height)
+        self.wallpaper, self.wallpaper_offset = None, (0, 0)
+        if pixbuf:
+            # Copy into a plain RGB24 surface and drop the pixbuf. Gdk.cairo_surface_create_from_pixbuf
+            # measured ~66 MiB extra RSS on first use; this path costs about the image size.
+            self.wallpaper = cairo.ImageSurface(cairo.FORMAT_RGB24, pixbuf.get_width(), pixbuf.get_height())
+            cr = cairo.Context(self.wallpaper)
+            Gdk.cairo_set_source_pixbuf(cr, pixbuf, 0, 0)
+            cr.paint()
+            self.wallpaper_offset = ((width - pixbuf.get_width()) / 2, (height - pixbuf.get_height()) / 2)
+            del pixbuf, cr
+            release_free_memory()
+        self.desktop.queue_draw()
+
+    def draw_desktop(self, widget, cr):
         width, height = widget.get_allocated_width(), widget.get_allocated_height()
-        background = cairo.LinearGradient(0, 0, 0, height)
-        background.add_color_stop_rgb(0, .082, .094, .114)
-        background.add_color_stop_rgb(1, .043, .051, .063)
-        cr.set_source(background)
-        cr.paint()
-        glow = cairo.RadialGradient(width * .82, height * .18, 0, width * .82, height * .18, width * .55)
-        glow.add_color_stop_rgba(0, .44, .83, .66, .07)
-        glow.add_color_stop_rgba(1, .44, .83, .66, 0)
-        cr.set_source(glow)
+        if self.wallpaper:
+            cr.set_source_surface(self.wallpaper, *self.wallpaper_offset)
+        else:
+            cr.set_source_rgb(.067, .075, .09)
         cr.paint()
         # Panel-coloured strip behind the external tray, so the bar reads as one piece.
         cr.set_source_rgb(*PANEL_RGB)
@@ -317,25 +343,6 @@ class Shell:
         cr.set_source_rgb(.141, .161, .188)
         cr.rectangle(0, height - PANEL_HEIGHT, width, 1)
         cr.fill()
-        x, y = 72, height * .40
-        cr.select_font_face('Noto Sans', 0, 0)
-        cr.set_font_size(56)
-        cr.set_source_rgb(.90, .91, .92)
-        cr.move_to(x, y)
-        cr.show_text('feodal')
-        cr.set_source_rgb(.44, .83, .66)
-        cr.arc(x + cr.text_extents('feodal').x_advance + 10, y - 5, 5, 0, 6.2832)
-        cr.fill()
-        cr.set_font_size(14)
-        cr.set_source_rgb(.54, .58, .62)
-        hints = [('Super + Space', 'програми'), ('Super + Enter', 'термінал'), ('Super + I', 'налаштування')]
-        for index, (keys, action) in enumerate(hints):
-            cr.move_to(x + 2, y + 44 + index * 24)
-            cr.set_source_rgb(.78, .80, .83)
-            cr.show_text(keys)
-            cr.set_source_rgb(.48, .52, .57)
-            cr.move_to(x + 130, y + 44 + index * 24)
-            cr.show_text(action)
         return False
 
     def error(self, message):

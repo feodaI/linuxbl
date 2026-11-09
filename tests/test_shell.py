@@ -107,6 +107,16 @@ class ShellTests(unittest.TestCase):
         self.assertIn(day, module.WEEKDAYS)
         self.assertIn(rest.split()[1], module.MONTHS)
 
+    def test_wallpaper_is_screen_sized_and_reloads(self):
+        self.assertIsNotNone(self.shell.wallpaper)
+        with patch.object(module, 'load_scaled', return_value=None):
+            self.shell.reload_wallpaper()
+        self.assertIsNone(self.shell.wallpaper)
+        self.shell.reload_wallpaper()
+        surface = self.shell.wallpaper
+        self.assertGreaterEqual(surface.get_width(), self.shell.rect.width)
+        self.assertGreaterEqual(surface.get_height(), self.shell.rect.height)
+
     def test_icon_button_falls_back_to_text(self):
         button = self.shell.icon_button('Текст', 'no-such-glyph', lambda _: None)
         self.assertEqual(button.get_label(), 'Текст')
@@ -196,6 +206,13 @@ class ShellTests(unittest.TestCase):
                 apply.assert_called_once_with('ua')
                 save.assert_called_once_with('ua')
                 self.assertIn('збережено', center.keyboard_note.get_text())
+            with patch.object(self.shell, 'reload_wallpaper') as reload:
+                center.apply_wallpaper(lambda: (_ for _ in ()).throw(ValueError()), 'ok')
+                reload.assert_not_called()
+                self.assertIn('Не вдалося', center.wallpaper_note.get_text())
+                center.reset_wallpaper()
+                reload.assert_called_once_with()
+                self.assertIn('стандартні', center.wallpaper_note.get_text())
             center.mode.set_active_id('nvidia')
             self.assertEqual(module.load_mode(), 'nvidia')
             center.destroy()

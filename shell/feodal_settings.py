@@ -6,6 +6,7 @@ from gi.repository import GLib, Gtk
 from feodal_hardware import collect_status
 from feodal_preferences import load_mode, save_mode
 from feodal_input import load_layout, apply_layout, save_layout
+from feodal_wallpaper import reset_user_wallpaper, set_user_wallpaper
 
 GUIDE = '''ДЛЯ MX330 / INTEL / 8 ГБ
 
@@ -138,6 +139,14 @@ class ControlCenter(Gtk.Window):
                                ('Знімок екрана', ['xfce4-screenshooter']),
                                ('Перевірити сповіщення', ['notify-send', 'Feodal', 'Сповіщення працюють.'])]:
             desktop.pack_start(shell.button(title, lambda _, cmd=command: shell.run(cmd)), False, False, 0)
+        desktop.pack_start(self.label('Шпалери'), False, False, 0)
+        wallpaper_row = Gtk.Box(spacing=8)
+        wallpaper_row.pack_start(shell.button('Обрати зображення…', self.choose_wallpaper), True, True, 0)
+        wallpaper_row.pack_start(shell.button('Стандартні', self.reset_wallpaper), True, True, 0)
+        desktop.pack_start(wallpaper_row, False, False, 0)
+        self.wallpaper_note = self.label('Стандартні: «Bridge medieval fantasy city», David Revoy / Blender '
+                                         'Foundation, CC BY 3.0.')
+        desktop.pack_start(self.wallpaper_note, False, False, 0)
         desktop.pack_start(self.label('Яскравість і батарея доступні лише за підтримки обладнання.\n'
                                      'Сон і закриття кришки потребують перевірки на ноутбуці.\n'
                                      'Блокування екрана ще не налаштоване — не вважай сон захистом.'), False, False, 0)
@@ -183,6 +192,31 @@ class ControlCenter(Gtk.Window):
                 message = 'Не вдалося застосувати або зберегти розкладку. Перевір X11 та права доступу.'
             GLib.idle_add(done, message)
         threading.Thread(target=work, daemon=True, name='feodal-input').start()
+
+    def choose_wallpaper(self, *_):
+        dialog = Gtk.FileChooserDialog(title='Обрати шпалери', transient_for=self,
+                                       action=Gtk.FileChooserAction.OPEN)
+        dialog.add_buttons('Скасувати', Gtk.ResponseType.CANCEL, 'Обрати', Gtk.ResponseType.ACCEPT)
+        images = Gtk.FileFilter()
+        images.set_name('Зображення')
+        images.add_pixbuf_formats()
+        dialog.add_filter(images)
+        path = dialog.get_filename() if dialog.run() == Gtk.ResponseType.ACCEPT else None
+        dialog.destroy()
+        if path:
+            self.apply_wallpaper(lambda: set_user_wallpaper(path), 'Шпалери змінено.')
+
+    def reset_wallpaper(self, *_):
+        self.apply_wallpaper(reset_user_wallpaper, 'Повернено стандартні шпалери.')
+
+    def apply_wallpaper(self, change, message):
+        try:
+            change()
+        except (OSError, ValueError, GLib.Error):
+            self.wallpaper_note.set_text('Не вдалося встановити зображення. Обери PNG або JPEG.')
+            return
+        self.shell.reload_wallpaper()
+        self.wallpaper_note.set_text(message)
 
     def save(self, *_):
         try:
