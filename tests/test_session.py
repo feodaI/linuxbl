@@ -100,6 +100,26 @@ exit "${UPDATER_STATUS:-0}"
         self.assertIn('input --apply', log)
         self.assertLess(log.index('input --apply'), log.index('openbox '))
 
+    def test_applies_dark_theme_and_xterm_resources(self):
+        self.write_executable('xrdb', '''\
+#!/bin/sh
+printf 'xrdb %s\\n' "$*" >> "$CALL_LOG"
+''')
+        self.write_executable('feodal-input', '''\
+#!/bin/sh
+printf 'input GTK_THEME=%s\\n' "${GTK_THEME-}" >> "$CALL_LOG"
+''')
+        self.env.pop('GTK_THEME', None)
+        self.assertEqual(self.run_session().returncode, 0)
+        log = Path(self.env['CALL_LOG']).read_text()
+        self.assertIn('xrdb -merge /etc/xdg/feodal/Xresources', log)
+        self.assertIn('input GTK_THEME=Adwaita:dark', log)
+        self.assertLess(log.index('xrdb '), log.index('openbox '))
+        Path(self.env['CALL_LOG']).unlink()
+        self.env['GTK_THEME'] = 'Custom'
+        self.assertEqual(self.run_session().returncode, 0)
+        self.assertIn('input GTK_THEME=Custom', Path(self.env['CALL_LOG']).read_text())
+
     def test_updates_only_requested_activation_environment_before_wm(self):
         result = self.run_session()
         log = Path(self.env['CALL_LOG']).read_text()

@@ -52,7 +52,7 @@ class ShellTests(unittest.TestCase):
     def test_panel_browser_button_uses_official_firefox(self):
         row = self.shell.panel.get_child()
         buttons = [button for button in row.get_children()
-                   if isinstance(button, Gtk.Button) and button.get_label() == 'Firefox']
+                   if isinstance(button, Gtk.Button) and button.get_tooltip_text() == 'Firefox']
         self.assertEqual(len(buttons), 1)
         with patch.object(self.shell, 'run') as run:
             buttons[0].clicked()
@@ -90,6 +90,29 @@ class ShellTests(unittest.TestCase):
         self.assertTrue(module.matching(app, 'TEST terminal'))
         self.assertFalse(module.matching(app, 'unfindable string'))
 
+    def test_launcher_closes_on_focus_loss_without_reopening(self):
+        self.shell.toggle_launcher()
+        pump()
+        self.shell.launcher_unfocused()
+        self.assertIsNone(self.shell.launcher)
+        # The menu-button click that caused the focus loss must not reopen it.
+        self.shell.toggle_launcher()
+        self.assertIsNone(self.shell.launcher)
+        self.shell.launcher_closed_at = 0
+
+    def test_clock_shows_locale_independent_date(self):
+        self.shell.tick()
+        self.assertRegex(self.shell.clock.get_text(), r'^\d\d:\d\d$')
+        day, rest = self.shell.date.get_text().split(', ')
+        self.assertIn(day, module.WEEKDAYS)
+        self.assertIn(rest.split()[1], module.MONTHS)
+
+    def test_icon_button_falls_back_to_text(self):
+        button = self.shell.icon_button('Текст', 'no-such-glyph', lambda _: None)
+        self.assertEqual(button.get_label(), 'Текст')
+        self.assertEqual(self.shell.icon_button('Живлення', 'power', lambda _: None).get_tooltip_text(),
+                         'Живлення')
+
     def test_launcher_toggle_escape(self):
         self.shell.toggle_launcher()
         pump()
@@ -122,7 +145,7 @@ class ShellTests(unittest.TestCase):
         window.maximize()
         pump()
         x, y, width, height = window.get_geometry()
-        self.assertLessEqual(y + height, self.shell.rect.height - 52)
+        self.assertLessEqual(y + height, self.shell.rect.height - module.PANEL_HEIGHT)
         window.close(module.GdkX11.x11_get_server_time(self.shell.panel.get_window()))
         # Older libwnck cannot keep a window wrapper alive after its class group dies.
         del window

@@ -1,11 +1,11 @@
 pkgname=feodal-shell
-pkgver=0.4.0
-pkgrel=2
+pkgver=0.5.0
+pkgrel=1
 pkgdesc='Lightweight native GTK desktop shell for Feodal Linux'
 arch=('any')
 license=('MIT')
 optdepends=('firefox: web browser' 'mousepad: text editor' 'xarchiver: archive manager' 'mpv: media player' 'steam: game client (multilib)' 'nvidia-prime: prime-run for compatible NVIDIA graphics')
-depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu' 'stalonetray' 'pasystray' 'xfce4-power-manager' 'dunst' 'libnotify' 'xfce4-screenshooter' 'arandr' 'xorg-setxkbmap' 'polkit-gnome' 'gvfs' 'udisks2' 'thunar-volman')
+depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu' 'stalonetray' 'pasystray' 'xfce4-power-manager' 'dunst' 'libnotify' 'xfce4-screenshooter' 'arandr' 'xorg-setxkbmap' 'xorg-xrdb' 'polkit-gnome' 'gvfs' 'udisks2' 'thunar-volman')
 
 package() {
     local root="$startdir/.."
@@ -16,11 +16,13 @@ package() {
     install -Dm755 "$root/bin/feodal-input" "$pkgdir/usr/bin/feodal-input"
     install -Dm644 "$root/config/stalonetrayrc" "$pkgdir/etc/xdg/feodal/stalonetrayrc"
     install -Dm644 "$root/config/dunstrc" "$pkgdir/etc/xdg/feodal/dunstrc"
+    install -Dm644 "$root/config/Xresources" "$pkgdir/etc/xdg/feodal/Xresources"
     install -Dm755 "$root/bin/feodal-hardware" "$pkgdir/usr/bin/feodal-hardware"
     install -Dm644 "$root/config/feodal-settings.desktop" "$pkgdir/usr/share/applications/feodal-settings.desktop"
     install -Dm755 "$root/bin/feodal-panel" "$pkgdir/usr/bin/feodal-panel"
     install -Dm755 "$root/bin/feodal-session" "$pkgdir/usr/bin/feodal-session"
     install -Dm644 "$root/config/openbox.xml" "$pkgdir/etc/xdg/feodal/openbox.xml"
+    install -Dm644 "$root/config/openbox-theme/themerc" "$pkgdir/usr/share/themes/Feodal/openbox-3/themerc"
     install -Dm644 "$root/config/feodal.desktop" "$pkgdir/usr/share/xsessions/feodal.desktop"
     install -Dm644 "$root/docs/browser.md" "$pkgdir/usr/share/doc/feodal/browser.md"
     install -Dm644 "$root/assets/browser/start.html" "$pkgdir/usr/share/feodal/browser/start.html"

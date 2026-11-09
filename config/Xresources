@@ -1,0 +1,25 @@
+! Feodal: dark xterm matching the shell palette.
+XTerm*faceName: DejaVu Sans Mono
+XTerm*faceSize: 10
+XTerm*internalBorder: 8
+XTerm*background: #111317
+XTerm*foreground: #d7dbe0
+XTerm*cursorColor: #6fd3a8
+XTerm*scrollBar: false
+XTerm*selectToClipboard: true
+XTerm*color0: #1b1f25
+XTerm*color1: #e06c75
+XTerm*color2: #6fd3a8
+XTerm*color3: #e5c07b
+XTerm*color4: #61afef
+XTerm*color5: #c678dd
+XTerm*color6: #56b6c2
+XTerm*color7: #d7dbe0
+XTerm*color8: #5c636c
+XTerm*color9: #ef7d86
+XTerm*color10: #8fe3bf
+XTerm*color11: #f0cf8f
+XTerm*color12: #7fbff5
+XTerm*color13: #d699e6
+XTerm*color14: #75c8d2
+XTerm*color15: #f2f4f6

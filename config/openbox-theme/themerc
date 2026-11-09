@@ -1,0 +1,81 @@
+# Feodal: flat dark Openbox theme matching the panel palette.
+border.width: 1
+padding.width: 8
+padding.height: 6
+window.handle.width: 0
+window.client.padding.width: 0
+window.client.padding.height: 0
+window.active.border.color: #2f363f
+window.inactive.border.color: #22272e
+window.active.client.color: #15181d
+window.inactive.client.color: #15181d
+window.active.title.bg: flat solid
+window.active.title.bg.color: #1b1f25
+window.inactive.title.bg: flat solid
+window.inactive.title.bg.color: #15181d
+window.active.label.bg: parentrelative
+window.inactive.label.bg: parentrelative
+window.active.label.text.color: #e6e8eb
+window.inactive.label.text.color: #6e7681
+window.label.text.justify: center
+window.active.button.unpressed.bg: parentrelative
+window.active.button.unpressed.image.color: #aab2bc
+window.active.button.hover.bg: flat solid
+window.active.button.hover.bg.color: #2a3038
+window.active.button.hover.image.color: #ffffff
+window.active.button.pressed.bg: flat solid
+window.active.button.pressed.bg.color: #6fd3a8
+window.active.button.pressed.image.color: #111317
+window.active.button.disabled.bg: parentrelative
+window.active.button.disabled.image.color: #4a525c
+window.active.button.toggled.bg: parentrelative
+window.active.button.toggled.image.color: #6fd3a8
+window.inactive.button.unpressed.bg: parentrelative
+window.inactive.button.unpressed.image.color: #59616b
+window.inactive.button.hover.bg: flat solid
+window.inactive.button.hover.bg.color: #22272e
+window.inactive.button.hover.image.color: #d7dbe0
+window.inactive.button.pressed.bg: flat solid
+window.inactive.button.pressed.bg.color: #2a3038
+window.inactive.button.pressed.image.color: #ffffff
+window.inactive.button.disabled.bg: parentrelative
+window.inactive.button.disabled.image.color: #3a414a
+window.inactive.button.toggled.bg: parentrelative
+window.inactive.button.toggled.image.color: #59616b
+window.active.handle.bg: flat solid
+window.active.handle.bg.color: #1b1f25
+window.inactive.handle.bg: flat solid
+window.inactive.handle.bg.color: #15181d
+window.active.grip.bg: flat solid
+window.active.grip.bg.color: #1b1f25
+window.inactive.grip.bg: flat solid
+window.inactive.grip.bg.color: #15181d
+menu.border.width: 1
+menu.border.color: #2a3038
+menu.overlap.x: 0
+menu.overlap.y: 0
+menu.title.bg: flat solid
+menu.title.bg.color: #15181d
+menu.title.text.color: #6fd3a8
+menu.title.text.justify: left
+menu.items.bg: flat solid
+menu.items.bg.color: #1b1f25
+menu.items.text.color: #e6e8eb
+menu.items.disabled.text.color: #59616b
+menu.items.active.bg: flat solid
+menu.items.active.bg.color: #262c34
+menu.items.active.text.color: #ffffff
+menu.separator.color: #2a3038
+menu.separator.width: 1
+menu.separator.padding.width: 6
+menu.separator.padding.height: 3
+osd.border.width: 1
+osd.border.color: #2a3038
+osd.bg: flat solid
+osd.bg.color: #1b1f25
+osd.label.bg: parentrelative
+osd.label.text.color: #e6e8eb
+osd.hilight.bg: flat solid
+osd.hilight.bg.color: #6fd3a8
+osd.unhilight.bg: flat solid
+osd.unhilight.bg.color: #2a3038

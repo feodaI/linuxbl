@@ -1,24 +1,27 @@
 [global]
-    font = "Sans 10"
-    background = "#101923"
-    foreground = "#e6edf3"
-    frame_color = "#38536b"
+    font = "Noto Sans 10"
+    padding = 12
+    horizontal_padding = 14
+    highlight = "#6fd3a8"
+    background = "#1b1f25"
+    foreground = "#e6e8eb"
+    frame_color = "#2a3038"
     frame_width = 1
     width = 360
     height = 120
     origin = top-right
     offset = 12x12
     notification_limit = 5
-    corner_radius = 6
+    corner_radius = 8
 
 [urgency_low]
-    background = "#101923"
-    foreground = "#aab8c5"
+    background = "#1b1f25"
+    foreground = "#8a939e"
     timeout = 5
 
 [urgency_normal]
-    background = "#101923"
-    foreground = "#e6edf3"
+    background = "#1b1f25"
+    foreground = "#e6e8eb"
     timeout = 8
 
 [urgency_critical]

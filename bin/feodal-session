@@ -3,6 +3,8 @@ set -eu
 export XDG_CURRENT_DESKTOP=Feodal
 export XDG_SESSION_DESKTOP=feodal
 export XDG_SESSION_TYPE=x11
+# Built into GTK 3: dark apps without installing another theme.
+export GTK_THEME="${GTK_THEME:-Adwaita:dark}"
 if [ -z "${DBUS_SESSION_BUS_ADDRESS:-}" ]; then
     exec dbus-run-session -- "$0" "$@"
 fi
@@ -52,6 +54,7 @@ start_optional pasystray
 start_optional xfce4-power-manager --no-daemon
 start_optional dunst -config /etc/xdg/feodal/dunstrc
 start_optional stalonetray -c /etc/xdg/feodal/stalonetrayrc
+run_optional xrdb -merge /etc/xdg/feodal/Xresources
 run_optional feodal-input --apply
 start_optional "${FEODAL_POLKIT_AGENT:-/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1}"
 
