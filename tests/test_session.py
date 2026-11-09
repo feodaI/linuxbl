@@ -101,24 +101,19 @@ exit "${UPDATER_STATUS:-0}"
         self.assertLess(log.index('input --apply'), log.index('openbox '))
 
     def test_applies_dark_theme_and_xterm_resources(self):
-        self.write_executable('xrdb', '''\
-#!/bin/sh
-printf 'xrdb %s\\n' "$*" >> "$CALL_LOG"
-''')
         self.write_executable('feodal-input', '''\
 #!/bin/sh
-printf 'input GTK_THEME=%s\\n' "${GTK_THEME-}" >> "$CALL_LOG"
+printf 'input GTK_THEME=%s XENVIRONMENT=%s\\n' "${GTK_THEME-}" "${XENVIRONMENT-}" >> "$CALL_LOG"
 ''')
         self.env.pop('GTK_THEME', None)
+        self.env.pop('XENVIRONMENT', None)
         self.assertEqual(self.run_session().returncode, 0)
         log = Path(self.env['CALL_LOG']).read_text()
-        self.assertIn('xrdb -merge /etc/xdg/feodal/Xresources', log)
-        self.assertIn('input GTK_THEME=Adwaita:dark', log)
-        self.assertLess(log.index('xrdb '), log.index('openbox '))
+        self.assertIn('input GTK_THEME=Adwaita:dark XENVIRONMENT=/etc/xdg/feodal/Xresources', log)
         Path(self.env['CALL_LOG']).unlink()
-        self.env['GTK_THEME'] = 'Custom'
+        self.env.update({'GTK_THEME': 'Custom', 'XENVIRONMENT': '/custom'})
         self.assertEqual(self.run_session().returncode, 0)
-        self.assertIn('input GTK_THEME=Custom', Path(self.env['CALL_LOG']).read_text())
+        self.assertIn('input GTK_THEME=Custom XENVIRONMENT=/custom', Path(self.env['CALL_LOG']).read_text())
 
     def test_updates_only_requested_activation_environment_before_wm(self):
         result = self.run_session()
