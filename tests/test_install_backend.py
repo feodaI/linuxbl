@@ -77,7 +77,8 @@ class BackendTests(unittest.TestCase):
         with patch.object(Path, 'exists', lambda self: True if str(self) == '/etc/pacman.d/mirrorlist'
                           else os.path.lexists(self)), \
                 patch.object(Path, 'read_text', lambda self, *a, **k: 'Server = https://live.mirror/$repo\n'
-                             if str(self) == '/etc/pacman.d/mirrorlist' else open(self, encoding='utf-8').read()):
+                             if str(self) == '/etc/pacman.d/mirrorlist' else open(self, encoding='utf-8').read()), \
+                patch.object(backend.os.path, 'ismount', return_value=True):
             self.installer.configure()
         for relative in backend.LIVE_FILES:
             if relative == 'etc/mkinitcpio.conf.d/feodal.conf':
@@ -115,6 +116,35 @@ class BackendTests(unittest.TestCase):
         self.assertNotIn('pa55-secret', (self.root / 'install.log').read_text())
         self.assertNotIn('pa55-secret', json.dumps(self.events, ensure_ascii=False))
 
+    def test_configure_refuses_to_write_when_target_is_unmounted(self):
+        with patch.object(backend.os.path, 'ismount', return_value=False):
+            with self.assertRaisesRegex(backend.InstallError, 'не змонтовано'):
+                self.installer.configure()
+
+    def test_configure_recreates_live_feodal_when_selected_as_username(self):
+        self.installer.config['username'] = 'feodal'
+        self.installer.config['password_confirm'] = self.installer.config['password']
+        chroot = self.installer.chroot
+
+        def chroot_with_userdel(command, stdin=None, check=True):
+            result = chroot(command, stdin, check)
+            if command == ['userdel', '--remove', 'feodal']:
+                passwd = self.target / 'etc/passwd'
+                passwd.write_text('\n'.join(line for line in passwd.read_text().splitlines()
+                                             if not line.startswith('feodal:')) + '\n')
+            return result
+
+        self.installer.chroot = chroot_with_userdel
+        self.installer.configure_system()
+        commands = [command[2:] for command, _ in self.installer.commands
+                    if command[:2] == ['arch-chroot', str(self.target)]]
+        userdel = ['userdel', '--remove', 'feodal']
+        useradd = ['useradd', '--create-home', '--groups', 'wheel', '--shell', '/bin/bash',
+                   '--comment', 'Тарас', 'feodal']
+        self.assertLess(commands.index(userdel), commands.index(useradd))
+        self.assertEqual([line for line in self.text('etc/passwd').splitlines()
+                          if line.startswith('feodal:')], [])
+
     def test_live_package_removal_has_kernel_and_masked_initramfs_hook(self):
         hook = self.target / 'etc/pacman.d/hooks/90-mkinitcpio-install.hook'
         seen = []
@@ -127,7 +157,8 @@ class BackendTests(unittest.TestCase):
             return original(command, stdin, check)
 
         self.installer.run = run
-        self.installer.configure()
+        with patch.object(backend.os.path, 'ismount', return_value=True):
+            self.installer.configure()
         self.assertEqual(seen, [('/dev/null', True)])
         self.assertFalse(os.path.lexists(hook))
 
@@ -141,7 +172,8 @@ class BackendTests(unittest.TestCase):
     def test_bootloader_installs_bios_and_removable_uefi(self):
         self.installer.stage = 'bootloader'
         with patch.object(backend.Path, 'exists', lambda self: False if str(self) == '/sys/firmware/efi'
-                          else os.path.lexists(self)):
+                          else os.path.lexists(self)), \
+                patch.object(backend.os.path, 'ismount', return_value=True):
             self.installer.bootloader()
         grub = self.text('etc/default/grub')
         self.assertIn('GRUB_TIMEOUT=3', grub)
@@ -155,7 +187,9 @@ class BackendTests(unittest.TestCase):
     def test_partitioning_layout_and_nvme_names(self):
         self.installer.stage = 'partition'
         self.installer.disk = '/dev/nvme0n1'
-        with patch.object(backend.core, 'lsblk_tree', return_value=[]), \
+        tree = [{'name': 'nvme0n1', 'path': '/dev/nvme0n1', 'size': 40 * 10 ** 9, 'type': 'disk'}]
+        with patch.object(backend.core, 'lsblk_tree', return_value=tree), \
+                patch.object(backend.core, 'live_boot_disk', return_value=None), \
                 patch.object(backend.Path, 'exists', lambda self: True):
             self.installer.partition_disk()
         sgdisk = [c for c, _ in self.installer.commands if c[0] == 'sgdisk' and '-n' in c][0]
@@ -163,6 +197,16 @@ class BackendTests(unittest.TestCase):
         self.assertIn('2:ef00', sgdisk)
         self.assertIn('1:ef02', sgdisk)
         self.assertEqual(self.installer.partition(3), '/dev/nvme0n1p3')
+
+    def test_partition_rechecks_disk_before_wiping(self):
+        self.installer.stage = 'partition'
+        tree = [{'name': 'vda', 'path': '/dev/vda', 'size': 40 * 10 ** 9, 'type': 'disk',
+                 'children': [{'name': 'vda1', 'path': '/dev/vda1', 'mountpoints': ['/media/other']}]}]
+        with patch.object(backend.core, 'lsblk_tree', return_value=tree), \
+                patch.object(backend.core, 'live_boot_disk', return_value=None):
+            with self.assertRaisesRegex(backend.InstallError, 'змонтовані'):
+                self.installer.partition_disk()
+        self.assertFalse(any(command[0] in ('wipefs', 'sgdisk') for command, _ in self.installer.commands))
 
     def test_preflight_refusals(self):
         self.installer.stage = 'preflight'
@@ -184,11 +228,26 @@ class BackendTests(unittest.TestCase):
 
     def test_failure_reports_error_and_unmounts(self):
         with patch.object(self.installer, 'preflight', side_effect=backend.InstallError('boom')), \
-                patch.object(self.installer, 'unmount') as unmount:
+                patch.object(self.installer, 'unmount', side_effect=OSError('cleanup failed')) as unmount:
             self.assertEqual(self.installer.install(), 1)
         unmount.assert_called_once()
         self.assertEqual(self.events[-1]['type'], 'error')
         self.assertEqual(self.events[-1]['message'], 'boom')
+        self.assertIn('cleanup failed', (self.root / 'install.log').read_text())
+
+    def test_unmount_failure_is_fatal_when_finishing(self):
+        result = subprocess.CompletedProcess(['umount'], 1, '', 'busy')
+        with patch.object(backend.os.path, 'ismount', return_value=True), \
+                patch.object(self.installer, 'run', return_value=result):
+            with self.assertRaisesRegex(backend.InstallError, 'відмонтувати'):
+                self.installer.unmount(check=True)
+
+    def test_unmount_cleans_efi_even_if_root_mount_is_gone(self):
+        result = subprocess.CompletedProcess(['umount'], 0, '', '')
+        with patch.object(backend.os.path, 'ismount', side_effect=[False, True, False, False]), \
+                patch.object(self.installer, 'run', return_value=result) as run:
+            self.installer.unmount(check=True)
+        run.assert_called_once_with(['umount', '--recursive', str(self.target)], check=False)
 
     def test_full_stage_order_and_progress(self):
         names = ('preflight', 'partition_disk', 'format', 'copy', 'configure', 'bootloader', 'finish')
@@ -206,7 +265,8 @@ class BackendTests(unittest.TestCase):
     def test_antigravity_failure_is_only_a_warning(self):
         self.installer.config['antigravity'] = True
         self.installer.stage = 'antigravity'
-        with patch('feodal_antigravity.install', side_effect=OSError('offline')):
+        with patch.object(backend.os.path, 'ismount', return_value=True), \
+                patch('feodal_antigravity.install', side_effect=OSError('offline')):
             self.installer.antigravity()
         self.assertIn('feodal-antigravity install', self.installer.warnings[0])
 
