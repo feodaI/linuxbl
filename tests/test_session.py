@@ -12,7 +12,7 @@ ACTIVATION_VARS = (
     'XDG_SESSION_DESKTOP XDG_SESSION_TYPE'
 )
 DAEMONS = (
-    'feodal-panel', 'nm-applet', 'pasystray', 'xfce4-power-manager',
+    'feodal-panel', 'nm-applet', 'pasystray', 'xfce4-power-manager', 'xss-lock',
     'dunst', 'stalonetray', 'polkit-gnome-authentication-agent-1',
 )
 
@@ -95,6 +95,7 @@ exit "${UPDATER_STATUS:-0}"
             self.assertIn(f'started {daemon} ', log)
             self.assertIn(f'stopped {daemon}', log)
         self.assertIn('started xfce4-power-manager --no-daemon', log)
+        self.assertIn('started xss-lock --transfer-sleep-lock -- feodal-lock', log)
         self.assertIn('started dunst -config /etc/xdg/feodal/dunstrc', log)
         self.assertIn('started stalonetray -c /etc/xdg/feodal/stalonetrayrc', log)
         self.assertIn('input --apply', log)

@@ -4,6 +4,9 @@ This prototype builds an x86_64 live ISO from the installed Arch Linux `releng` 
 
 Desktop packages are listed in `iso/packages.desktop`: official Arch Firefox,
 Ukrainian language pack, Mousepad, Xarchiver, ZIP/unzip, mpv and Noto/emoji fonts.
+Version 0.6 also bundles Steam, 64-/32-bit Intel Vulkan/Mesa, GameMode, kernel
+headers/DKMS, Bluetooth tools and i3lock/xss-lock. Multilib is enabled in both
+the build profile and the installed system; official package signatures remain required.
 The browser homepage is local and user-editable; only its first-run tour is hidden.
 Firefox security isolation and updates are not disabled. See [browser defaults](browser.md).
 These applications are not autostarted by the session. Feodal 0.4 adds dedicated
@@ -26,7 +29,7 @@ sudo ./scripts/build-iso.sh /path/to/feodal-shell-<version>-any.pkg.tar.* [outpu
 ```
 
 The image filename uses the shell package version (for example,
-`feodal-0.4.0-2-x86_64.iso`) so different package versions do not overwrite the
+`feodal-0.6.0-1-x86_64.iso`) so different package versions do not overwrite the
 previous dated prototype.
 
 The output directory defaults to `./out` and is not cleaned or deleted. The package must have the `feodal-shell` package name; it is staged in a temporary local file repository created with `repo-add`, allowing pacman to resolve the shell and its official repository dependencies. Pass a locally built package you trust. The installed releng profile can be selected with `ARCHISO_RELENG_PROFILE` if it is not at `/usr/share/archiso/configs/releng`.
