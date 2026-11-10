@@ -1,0 +1,8 @@
+#!/usr/bin/python3
+# Root installer backend; run through pkexec by feodal-installer.
+import sys
+
+sys.path.insert(0, "/usr/lib/feodal")
+from feodal_install_backend import main  # noqa: E402
+
+sys.exit(main())

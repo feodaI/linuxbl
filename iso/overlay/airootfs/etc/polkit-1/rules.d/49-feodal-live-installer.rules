@@ -1,0 +1,8 @@
+// Live ISO only (the installer deletes this file from the installed system):
+// the passwordless live user may start the disk installer from the active session.
+polkit.addRule(function(action, subject) {
+    if (action.id == "org.feodal.installer" && subject.user == "feodal" &&
+            subject.local && subject.active) {
+        return polkit.Result.YES;
+    }
+});

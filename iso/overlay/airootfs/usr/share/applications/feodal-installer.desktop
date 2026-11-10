@@ -1,0 +1,11 @@
+[Desktop Entry]
+Name=Install Feodal
+Name[uk]=Встановити Feodal
+Comment=Install Feodal Linux to a disk
+Comment[uk]=Встановити Feodal Linux на диск
+Exec=feodal-installer
+TryExec=feodal-installer
+Icon=system-software-install
+Terminal=false
+Type=Application
+Categories=System;
