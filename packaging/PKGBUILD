@@ -1,11 +1,11 @@
 pkgname=feodal-shell
-pkgver=0.5.0
+pkgver=0.6.0
 pkgrel=1
 pkgdesc='Lightweight native GTK desktop shell for Feodal Linux'
 arch=('any')
 license=('MIT' 'CC-BY-3.0')
 optdepends=('firefox: web browser' 'mousepad: text editor' 'xarchiver: archive manager' 'mpv: media player' 'steam: game client (multilib)' 'nvidia-prime: prime-run for compatible NVIDIA graphics')
-depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu' 'stalonetray' 'pasystray' 'xfce4-power-manager' 'dunst' 'libnotify' 'xfce4-screenshooter' 'arandr' 'xorg-setxkbmap' 'polkit-gnome' 'gvfs' 'udisks2' 'thunar-volman' 'polkit' 'gptfdisk' 'dosfstools' 'e2fsprogs' 'rsync' 'arch-install-scripts' 'grub' 'efibootmgr' 'sudo' 'terminus-font')
+depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu' 'stalonetray' 'pasystray' 'xfce4-power-manager' 'dunst' 'libnotify' 'xfce4-screenshooter' 'arandr' 'xorg-setxkbmap' 'polkit-gnome' 'gvfs' 'udisks2' 'thunar-volman' 'polkit' 'gptfdisk' 'dosfstools' 'e2fsprogs' 'rsync' 'arch-install-scripts' 'grub' 'efibootmgr' 'sudo' 'terminus-font' 'i3lock' 'xss-lock')
 
 package() {
     local root="$startdir/.."
@@ -25,6 +25,7 @@ package() {
     install -Dm755 "$root/bin/feodal-hardware" "$pkgdir/usr/bin/feodal-hardware"
     install -Dm644 "$root/config/feodal-settings.desktop" "$pkgdir/usr/share/applications/feodal-settings.desktop"
     install -Dm755 "$root/bin/feodal-panel" "$pkgdir/usr/bin/feodal-panel"
+    install -Dm755 "$root/bin/feodal-lock" "$pkgdir/usr/bin/feodal-lock"
     install -Dm755 "$root/bin/feodal-session" "$pkgdir/usr/bin/feodal-session"
     install -Dm644 "$root/config/openbox.xml" "$pkgdir/etc/xdg/feodal/openbox.xml"
     install -Dm644 "$root/config/openbox-theme/themerc" "$pkgdir/usr/share/themes/Feodal/openbox-3/themerc"
