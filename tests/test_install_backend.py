@@ -155,7 +155,9 @@ class BackendTests(unittest.TestCase):
     def test_partitioning_layout_and_nvme_names(self):
         self.installer.stage = 'partition'
         self.installer.disk = '/dev/nvme0n1'
-        with patch.object(backend.core, 'lsblk_tree', return_value=[]), \
+        tree = [{'name': 'nvme0n1', 'path': '/dev/nvme0n1', 'size': 40 * 10 ** 9, 'type': 'disk'}]
+        with patch.object(backend.core, 'lsblk_tree', return_value=tree), \
+                patch.object(backend.core, 'live_boot_disk', return_value=None), \
                 patch.object(backend.Path, 'exists', lambda self: True):
             self.installer.partition_disk()
         sgdisk = [c for c, _ in self.installer.commands if c[0] == 'sgdisk' and '-n' in c][0]
@@ -163,6 +165,16 @@ class BackendTests(unittest.TestCase):
         self.assertIn('2:ef00', sgdisk)
         self.assertIn('1:ef02', sgdisk)
         self.assertEqual(self.installer.partition(3), '/dev/nvme0n1p3')
+
+    def test_partition_rechecks_disk_before_wiping(self):
+        self.installer.stage = 'partition'
+        tree = [{'name': 'vda', 'path': '/dev/vda', 'size': 40 * 10 ** 9, 'type': 'disk',
+                 'children': [{'name': 'vda1', 'path': '/dev/vda1', 'mountpoints': ['/media/other']}]}]
+        with patch.object(backend.core, 'lsblk_tree', return_value=tree), \
+                patch.object(backend.core, 'live_boot_disk', return_value=None):
+            with self.assertRaisesRegex(backend.InstallError, 'змонтовані'):
+                self.installer.partition_disk()
+        self.assertFalse(any(command[0] in ('wipefs', 'sgdisk') for command, _ in self.installer.commands))
 
     def test_preflight_refusals(self):
         self.installer.stage = 'preflight'
@@ -184,11 +196,19 @@ class BackendTests(unittest.TestCase):
 
     def test_failure_reports_error_and_unmounts(self):
         with patch.object(self.installer, 'preflight', side_effect=backend.InstallError('boom')), \
-                patch.object(self.installer, 'unmount') as unmount:
+                patch.object(self.installer, 'unmount', side_effect=OSError('cleanup failed')) as unmount:
             self.assertEqual(self.installer.install(), 1)
         unmount.assert_called_once()
         self.assertEqual(self.events[-1]['type'], 'error')
         self.assertEqual(self.events[-1]['message'], 'boom')
+        self.assertIn('cleanup failed', (self.root / 'install.log').read_text())
+
+    def test_unmount_failure_is_fatal_when_finishing(self):
+        result = subprocess.CompletedProcess(['umount'], 1, '', 'busy')
+        with patch.object(backend.os.path, 'ismount', side_effect=[True, True]), \
+                patch.object(self.installer, 'run', return_value=result):
+            with self.assertRaisesRegex(backend.InstallError, 'відмонтувати'):
+                self.installer.unmount(check=True)
 
     def test_full_stage_order_and_progress(self):
         names = ('preflight', 'partition_disk', 'format', 'copy', 'configure', 'bootloader', 'finish')

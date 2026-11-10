@@ -150,19 +150,27 @@ class Installer:
         problems = core.validate_user(self.config)
         if problems:
             raise InstallError(problems[0][1])
-        choices = {disk['path']: disk for disk in core.disk_choices(core.lsblk_tree(), core.live_boot_disk())}
-        chosen = choices.get(self.disk)
-        if not chosen:
-            raise InstallError(f'Диск не знайдено: {self.disk}')
-        if chosen['reason']:
-            raise InstallError(f'Диск {self.disk} не можна використати: {chosen["reason"]}')
+        _, chosen = self.check_target_disk()
+        if self.target.is_symlink():
+            raise InstallError(f'{self.target} не може бути символічним посиланням')
         if self.target.exists() and os.path.ismount(self.target):
             raise InstallError(f'{self.target} вже змонтовано')
         self.log(f'Диск: {self.disk} ({chosen["model"]}, {core.human_size(chosen["size"])}); '
                  f'джерело: {self.source}; UEFI: {Path("/sys/firmware/efi").exists()}')
 
-    def partition_disk(self):
+    def check_target_disk(self):
         tree = core.lsblk_tree()
+        choices = {disk['path']: disk for disk in core.disk_choices(tree, core.live_boot_disk())}
+        chosen = choices.get(self.disk)
+        if not chosen:
+            raise InstallError(f'Диск не знайдено: {self.disk}')
+        if chosen['reason']:
+            raise InstallError(f'Диск {self.disk} не можна використати: {chosen["reason"]}')
+        return tree, chosen
+
+    def partition_disk(self):
+        # Recheck immediately before the first destructive command; preflight may be stale.
+        tree, _ = self.check_target_disk()
         for device in tree:
             if device.get('path') == self.disk:
                 for child in device.get('children') or ():
@@ -196,8 +204,9 @@ class Installer:
         command = ['rsync', '-aAXH', '--numeric-ids', '--no-inc-recursive', '--info=progress2',
                    f'{self.source}/', f'{self.target}/']
         self.log('$ ' + ' '.join(command))
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
         buffer, last = b'', -1
+        tail = []
         while True:
             chunk = process.stdout.read(4096)
             if not chunk:
@@ -206,13 +215,17 @@ class Installer:
             parts = re.split(rb'[\r\n]', buffer)
             buffer = parts.pop()
             for part in parts:
+                if part:
+                    tail.append(part.decode(errors='replace'))
+                    del tail[:-15]
                 match = re.search(rb'\s(\d{1,3})%\s', part)
                 if match and int(match.group(1)) != last:
                     last = int(match.group(1))
                     self.progress(last / 100)
-        errors = process.stderr.read().decode(errors='replace').strip()
+        if buffer:
+            tail.append(buffer.decode(errors='replace'))
         if process.wait():
-            for line in errors.splitlines()[-15:]:
+            for line in tail[-15:]:
                 self.log('  ' + line)
             raise InstallError('Не вдалося скопіювати систему на диск')
 
@@ -375,11 +388,16 @@ class Installer:
             shutil.copy2(self.log_path, self.path('var/log/feodal-installer.log'))
         except OSError:
             pass
-        self.unmount()
+        self.unmount(check=True)
 
-    def unmount(self):
+    def unmount(self, check=False):
         if self.target.exists() and os.path.ismount(self.target):
-            self.run(['umount', '--recursive', str(self.target)], check=False)
+            result = self.run(['umount', '--recursive', str(self.target)], check=False)
+            if result.returncode or os.path.ismount(self.target):
+                message = f'Не вдалося відмонтувати {self.target}'
+                if check:
+                    raise InstallError(message)
+                self.log('УВАГА: ' + message)
 
     def install(self):
         actions = {'preflight': self.preflight, 'partition': self.partition_disk, 'format': self.format,
@@ -394,7 +412,10 @@ class Installer:
         except Exception as exc:
             message = str(exc) if isinstance(exc, InstallError) else f'Неочікувана помилка: {exc}'
             self.log('ПОМИЛКА: ' + message)
-            self.unmount()
+            try:
+                self.unmount(check=False)
+            except Exception as cleanup_error:
+                self.log(f'Не вдалося очистити монтування: {cleanup_error}')
             self.emit({'type': 'error', 'stage': self.stage, 'message': message, 'log': str(self.log_path)})
             return 1
         self.emit({'type': 'done', 'warnings': self.warnings})
