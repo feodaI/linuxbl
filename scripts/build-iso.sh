@@ -44,6 +44,8 @@ case "$out_dir/" in
 esac
 
 work_root=$(mktemp -d "${TMPDIR:-/tmp}/feodal-iso.XXXXXXXX")
+# Pacman's unprivileged downloader must traverse the local package repository.
+chmod 0755 "$work_root"
 # Failed builds can leave mounts below work; never recursively delete that tree.
 trap 'printf "Build workspace retained for inspection: %s\n" "$work_root" >&2' EXIT
 
@@ -51,7 +53,14 @@ profile="$work_root/profile"
 repo_dir="$work_root/local-repo"
 mkdir -p -- "$profile" "$repo_dir" "$work_root/work"
 cp -a -- "$releng_profile/." "$profile/"
-cp -a -- "$overlay_dir/." "$profile/airootfs/"
+cp -a --no-preserve=ownership -- "$overlay_dir/." "$profile/airootfs/"
+# Steam needs multilib at build time as well as in the installed system.
+sed -i -e 's/^#\[multilib\]/[multilib]/' "$profile/pacman.conf"
+if ! grep -q '^\[multilib\]' "$profile/pacman.conf"; then
+    printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >> "$profile/pacman.conf"
+else
+    sed -i '/^\[multilib\]/,/^$/s/^#Include/Include/' "$profile/pacman.conf"
+fi
 sed -i \
     -e 's/^iso_name=.*/iso_name="feodal"/' \
     -e 's/^iso_label=.*/iso_label="FEODAL"/' \
@@ -60,8 +69,8 @@ sed -i \
     "$profile/profiledef.sh"
 cat >> "$profile/profiledef.sh" <<'PROFILE_EOF'
 
-# Prefer lower build/decompression cost over the smallest possible live image.
-airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '6' '-b' '1M')
+# Keep the Steam/multilib image within the release hosting size limit.
+airootfs_image_tool_options=('-comp' 'zstd' '-Xcompression-level' '19' '-b' '1M' '-root-uid' '0' '-root-gid' '0')
 PROFILE_EOF
 printf '\niso_version=%q\n' "${package_info#* }" >> "$profile/profiledef.sh"
 grep -q '^iso_name="feodal"$' "$profile/profiledef.sh" || die 'could not customize releng profile metadata'
