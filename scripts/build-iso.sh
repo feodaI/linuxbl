@@ -44,6 +44,8 @@ case "$out_dir/" in
 esac
 
 work_root=$(mktemp -d "${TMPDIR:-/tmp}/feodal-iso.XXXXXXXX")
+# Pacman's unprivileged downloader must traverse the local package repository.
+chmod 0755 "$work_root"
 # Failed builds can leave mounts below work; never recursively delete that tree.
 trap 'printf "Build workspace retained for inspection: %s\n" "$work_root" >&2' EXIT
 
@@ -52,6 +54,13 @@ repo_dir="$work_root/local-repo"
 mkdir -p -- "$profile" "$repo_dir" "$work_root/work"
 cp -a -- "$releng_profile/." "$profile/"
 cp -a -- "$overlay_dir/." "$profile/airootfs/"
+# Steam needs multilib at build time as well as in the installed system.
+sed -i -e 's/^#\[multilib\]/[multilib]/' "$profile/pacman.conf"
+if ! grep -q '^\[multilib\]' "$profile/pacman.conf"; then
+    printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >> "$profile/pacman.conf"
+else
+    sed -i '/^\[multilib\]/,/^$/s/^#Include/Include/' "$profile/pacman.conf"
+fi
 sed -i \
     -e 's/^iso_name=.*/iso_name="feodal"/' \
     -e 's/^iso_label=.*/iso_label="FEODAL"/' \

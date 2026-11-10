@@ -114,26 +114,35 @@ def live_boot_disk(runner=subprocess.run):
 
 def validate_user(config):
     """Return a list of (field, message) problems; empty when valid."""
+    if not isinstance(config, dict):
+        return [('config', 'Некоректні налаштування користувача')]
     problems = []
     username = config.get('username', '')
-    if not USERNAME.match(username):
+    if not isinstance(username, str) or not USERNAME.fullmatch(username):
         problems.append(('username', 'Логін: малі латинські літери, цифри, _ або -, з літери'))
     elif username in RESERVED_USERS:
         problems.append(('username', 'Цей логін зайнятий системою'))
     password = config.get('password', '')
-    if len(password) < 4:
+    if not isinstance(password, str) or len(password) < 4:
         problems.append(('password', 'Пароль має містити щонайменше 4 символи'))
     elif password != config.get('password_confirm', password):
         problems.append(('password', 'Паролі не збігаються'))
-    elif '\n' in password:
-        problems.append(('password', 'Пароль не може містити перенесення рядка'))
-    if not HOSTNAME.match(config.get('hostname', '')):
+    elif any(ord(char) < 32 or 127 <= ord(char) <= 159 for char in password):
+        problems.append(('password', 'Пароль не може містити керівні символи'))
+    hostname = config.get('hostname', '')
+    if not isinstance(hostname, str) or not HOSTNAME.fullmatch(hostname):
         problems.append(('hostname', 'Назва комп’ютера: латинські літери, цифри та дефіс'))
-    if ':' in config.get('fullname', '') or '\n' in config.get('fullname', ''):
-        problems.append(('fullname', 'Ім’я не може містити двокрапку'))
+    fullname = config.get('fullname', '')
+    if not isinstance(fullname, str) or ':' in fullname or \
+            any(ord(char) < 32 or 127 <= ord(char) <= 159 for char in fullname):
+        problems.append(('fullname', 'Ім’я не може містити керівні символи або двокрапку'))
     timezone = config.get('timezone', '')
-    if not timezone or '..' in timezone or timezone.startswith('/') or \
-            not (Path('/usr/share/zoneinfo') / timezone).is_file():
+    try:
+        valid_timezone = isinstance(timezone, str) and timezone and '..' not in timezone and \
+            not timezone.startswith('/') and (Path('/usr/share/zoneinfo') / timezone).is_file()
+    except (OSError, ValueError):
+        valid_timezone = False
+    if not valid_timezone:
         problems.append(('timezone', 'Невідомий часовий пояс'))
     if config.get('locale') not in LOCALES:
         problems.append(('locale', 'Невідома мова системи'))
