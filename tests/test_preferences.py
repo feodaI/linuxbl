@@ -39,11 +39,23 @@ class PreferenceTests(unittest.TestCase):
 
     def test_explicit_steam_launch_modes(self):
         self.assertEqual(steam_command('auto', {'steam_available': True}), ['steam'])
-        status = {'steam_available': True, 'nvidia_ready': True, 'prime_available': True}
-        self.assertEqual(steam_command('nvidia', status), ['prime-run', 'steam'])
-        for key in status:
-            with self.subTest(key=key), self.assertRaises(ValueError):
-                steam_command('nvidia', {**status, key: False})
+        status = {'steam_available': True, 'nvidia_ready': True}
+        expected = [
+            'env', '__NV_PRIME_RENDER_OFFLOAD=1',
+            '__GLX_VENDOR_LIBRARY_NAME=nvidia', '__VK_LAYER_NV_optimus=NVIDIA_only',
+            'steam',
+        ]
+        with patch.dict(os.environ, {'__NV_PRIME_RENDER_OFFLOAD': 'unchanged'}, clear=False):
+            before = dict(os.environ)
+            self.assertEqual(steam_command('nvidia', status), expected)
+            self.assertEqual(steam_command('nvidia', {
+                **status, 'prime_available': False,
+            }), expected)
+            self.assertEqual(dict(os.environ), before)
+        with self.assertRaisesRegex(ValueError, 'драйвер'):
+            steam_command('nvidia', {**status, 'nvidia_ready': False})
+        with self.assertRaisesRegex(ValueError, 'Steam'):
+            steam_command('nvidia', {**status, 'steam_available': False})
         with self.assertRaises(ValueError):
             steam_command('unknown', status)
 
