@@ -1,21 +1,24 @@
 pkgname=feodal-shell
-pkgver=0.5.0
+pkgver=0.6.0
 pkgrel=1
 pkgdesc='Lightweight native GTK desktop shell for Feodal Linux'
 arch=('any')
 license=('MIT' 'CC-BY-3.0')
 optdepends=('firefox: web browser' 'mousepad: text editor' 'xarchiver: archive manager' 'mpv: media player' 'steam: game client (multilib)' 'nvidia-prime: prime-run for compatible NVIDIA graphics')
-depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu' 'stalonetray' 'pasystray' 'xfce4-power-manager' 'dunst' 'libnotify' 'xfce4-screenshooter' 'arandr' 'xorg-setxkbmap' 'polkit-gnome' 'gvfs' 'udisks2' 'thunar-volman' 'polkit' 'gptfdisk' 'dosfstools' 'e2fsprogs' 'rsync' 'arch-install-scripts' 'grub' 'efibootmgr' 'sudo' 'terminus-font')
+depends=('python' 'python-gobject' 'python-cairo' 'gtk3' 'libwnck3' 'openbox' 'dbus' 'xorg-server' 'xorg-xinit' 'xterm' 'thunar' 'pavucontrol' 'network-manager-applet' 'ttf-dejavu' 'stalonetray' 'pasystray' 'xfce4-power-manager' 'dunst' 'libnotify' 'xfce4-screenshooter' 'arandr' 'xorg-setxkbmap' 'polkit-gnome' 'gvfs' 'udisks2' 'thunar-volman' 'polkit' 'gptfdisk' 'dosfstools' 'e2fsprogs' 'rsync' 'arch-install-scripts' 'grub' 'efibootmgr' 'sudo' 'terminus-font' 'i3lock' 'xss-lock')
 
 package() {
     local root="$startdir/.."
     install -Dm644 "$root/shell/feodal_panel.py" "$pkgdir/usr/lib/feodal/feodal_panel.py"
     for module in feodal_settings feodal_preferences feodal_hardware feodal_input feodal_wallpaper feodal_style \
-            feodal_installer_core feodal_install_backend feodal_installer feodal_antigravity; do
+            feodal_installer_core feodal_install_backend feodal_installer feodal_antigravity feodal_gaming; do
         install -Dm644 "$root/shell/$module.py" "$pkgdir/usr/lib/feodal/$module.py"
     done
     install -Dm755 "$root/bin/feodal-input" "$pkgdir/usr/bin/feodal-input"
     install -Dm755 "$root/bin/feodal-installer" "$pkgdir/usr/bin/feodal-installer"
+    install -Dm755 "$root/bin/feodal-gaming" "$pkgdir/usr/bin/feodal-gaming"
+    install -Dm644 "$root/docs/installer.md" "$pkgdir/usr/share/doc/feodal/installer.md"
+    install -Dm644 "$root/docs/gaming.md" "$pkgdir/usr/share/doc/feodal/gaming.md"
     install -Dm755 "$root/bin/feodal-antigravity" "$pkgdir/usr/bin/feodal-antigravity"
     install -Dm755 "$root/bin/feodal-install-backend" "$pkgdir/usr/lib/feodal/feodal-install-backend"
     install -Dm644 "$root/config/polkit/org.feodal.installer.policy" "$pkgdir/usr/share/polkit-1/actions/org.feodal.installer.policy"
@@ -25,6 +28,7 @@ package() {
     install -Dm755 "$root/bin/feodal-hardware" "$pkgdir/usr/bin/feodal-hardware"
     install -Dm644 "$root/config/feodal-settings.desktop" "$pkgdir/usr/share/applications/feodal-settings.desktop"
     install -Dm755 "$root/bin/feodal-panel" "$pkgdir/usr/bin/feodal-panel"
+    install -Dm755 "$root/bin/feodal-lock" "$pkgdir/usr/bin/feodal-lock"
     install -Dm755 "$root/bin/feodal-session" "$pkgdir/usr/bin/feodal-session"
     install -Dm644 "$root/config/openbox.xml" "$pkgdir/etc/xdg/feodal/openbox.xml"
     install -Dm644 "$root/config/openbox-theme/themerc" "$pkgdir/usr/share/themes/Feodal/openbox-3/themerc"
