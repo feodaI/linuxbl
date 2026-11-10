@@ -57,6 +57,22 @@ class DesktopDefaultsTests(unittest.TestCase):
         self.assertEqual(len(packages), len(set(packages)))
         self.assertIn('iso/packages.desktop', (ROOT / 'scripts/build-iso.sh').read_text())
 
+    def test_intel_gaming_stack_and_signed_multilib_are_in_iso(self):
+        packages = (ROOT / 'iso/packages.desktop').read_text().splitlines()
+        for package in ('steam', 'mesa', 'lib32-mesa', 'vulkan-intel', 'lib32-vulkan-intel',
+                        'vulkan-icd-loader', 'lib32-vulkan-icd-loader', 'linux-headers', 'dkms'):
+            self.assertIn(package, packages)
+        self.assertNotIn('nvidia-open', packages)
+        conf = (ROOT / 'iso/overlay/airootfs/etc/pacman.conf').read_text()
+        self.assertIn('[multilib]\nInclude = /etc/pacman.d/mirrorlist', conf)
+        self.assertIn('SigLevel = Required DatabaseOptional', conf)
+        self.assertNotIn('TrustAll', conf)
+
+    def test_image_overlay_does_not_inherit_checkout_ownership(self):
+        script = (ROOT / 'scripts/build-iso.sh').read_text()
+        self.assertIn('cp -a --no-preserve=ownership -- "$overlay_dir/."', script)
+        self.assertIn("'-root-uid' '0' '-root-gid' '0'", script)
+
 
 if __name__ == '__main__':
     unittest.main(verbosity=2)

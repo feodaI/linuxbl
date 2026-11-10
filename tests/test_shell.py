@@ -238,7 +238,9 @@ class ShellTests(unittest.TestCase):
             error.assert_called_once()
             self.shell.launch_steam()
             diagnose.call_args.args[0]({'steam_available': True, 'prime_available': True, 'nvidia_ready': True}, None)
-            run.assert_called_once_with(['prime-run', 'steam'])
+            run.assert_called_once_with(['env', '__NV_PRIME_RENDER_OFFLOAD=1',
+                                         '__GLX_VENDOR_LIBRARY_NAME=nvidia',
+                                         '__VK_LAYER_NV_optimus=NVIDIA_only', 'steam'])
         with patch.object(self.shell, 'run') as run, patch.object(module, 'load_mode', return_value='auto'), \
                 patch.object(module.shutil, 'which', return_value='/usr/bin/steam'), \
                 patch.object(module, 'diagnose_async') as diagnose:

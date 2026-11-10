@@ -4,6 +4,9 @@ This prototype builds an x86_64 live ISO from the installed Arch Linux `releng` 
 
 Desktop packages are listed in `iso/packages.desktop`: official Arch Firefox,
 Ukrainian language pack, Mousepad, Xarchiver, ZIP/unzip, mpv and Noto/emoji fonts.
+Version 0.6 also bundles Steam, 64-/32-bit Intel Vulkan/Mesa, GameMode, kernel
+headers/DKMS, Bluetooth tools and i3lock/xss-lock. Multilib is enabled in both
+the build profile and the installed system; official package signatures remain required.
 The browser homepage is local and user-editable; only its first-run tour is hidden.
 Firefox security isolation and updates are not disabled. See [browser defaults](browser.md).
 These applications are not autostarted by the session. Feodal 0.4 adds dedicated
@@ -13,7 +16,7 @@ Run `scripts/check-desktop-session.sh` as root inside the booted VM to verify
 these helper processes and notification/XKB services without triggering power
 actions or changing hardware settings.
 
-The live filesystem and initramfs use zstd level 6 instead of the inherited xz compression, trading image size for lower compression/decompression cost. The initramfs retains local-media boot hooks but omits PXE/NFS/HTTP/NBD boot support; this profile is for local ISO/USB boot, not netboot.
+The live filesystem uses zstd level 19 to fit the Steam/multilib image under the release hosting limit; the initramfs uses zstd level 6. Higher root-image compression costs build time without changing the installed files. The initramfs retains local-media boot hooks but omits PXE/NFS/HTTP/NBD boot support; this profile is for local ISO/USB boot, not netboot.
 
 The live profile uses `zram-generator` with zstd, a logical swap size of half RAM capped at 4096 MiB, and priority 100. Compressed pages still use physical memory; this is not extra RAM or an FPS guarantee. The live account is the unprivileged `feodal` user; tty1 logs it in automatically and starts `feodal-session` through Xinit. If X fails, the user is left at a console prompt.
 
@@ -26,7 +29,7 @@ sudo ./scripts/build-iso.sh /path/to/feodal-shell-<version>-any.pkg.tar.* [outpu
 ```
 
 The image filename uses the shell package version (for example,
-`feodal-0.4.0-2-x86_64.iso`) so different package versions do not overwrite the
+`feodal-0.6.0-1-x86_64.iso`) so different package versions do not overwrite the
 previous dated prototype.
 
 The output directory defaults to `./out` and is not cleaned or deleted. The package must have the `feodal-shell` package name; it is staged in a temporary local file repository created with `repo-add`, allowing pacman to resolve the shell and its official repository dependencies. Pass a locally built package you trust. The installed releng profile can be selected with `ARCHISO_RELENG_PROFILE` if it is not at `/usr/share/archiso/configs/releng`.
