@@ -54,6 +54,7 @@ start_optional feodal-panel
 start_optional nm-applet
 start_optional pasystray
 start_optional xfce4-power-manager --no-daemon
+start_optional xss-lock --transfer-sleep-lock -- feodal-lock
 start_optional dunst -config /etc/xdg/feodal/dunstrc
 start_optional stalonetray -c /etc/xdg/feodal/stalonetrayrc
 run_optional feodal-input --apply
