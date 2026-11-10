@@ -114,7 +114,7 @@ class Installer(Gtk.Window):
         card = styled(Gtk.Box(orientation=Gtk.Orientation.VERTICAL, spacing=8), 'card')
         for line in ('Потрібно: диск від 20 ГБ, 64-бітний ПК (UEFI або BIOS), Secure Boot вимкнено.',
                      'Обраний диск буде стерто повністю — встановлення поруч із Windows поки не підтримується.',
-                     'Інтернет потрібен лише для Google Antigravity; без нього система встановиться.',
+                     'Для ігор радимо диск від 200 ГБ. Інтернет потрібен для завантаження ігор і Antigravity.',
                      'Тривалість: зазвичай 5–15 хвилин, залежно від швидкості флешки й диска.'):
             card.pack_start(label('•  ' + line), False, False, 0)
         page.pack_start(card, False, False, 0)
@@ -253,7 +253,7 @@ class Installer(Gtk.Window):
         page.pack_start(card, False, False, 0)
         self.network_note = label('', 'warning')
         page.pack_start(self.network_note, False, False, 0)
-        page.pack_start(label('Firefox, файловий менеджер, термінал, редактор, архіватор і медіаплеєр '
+        page.pack_start(label('Steam, Intel Vulkan, Firefox, файловий менеджер, термінал, редактор, архіватор і медіаплеєр '
                               'уже входять у систему.', 'muted'), False, False, 0)
 
     def page_summary(self, page):

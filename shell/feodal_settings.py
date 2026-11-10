@@ -18,8 +18,8 @@ MX330 належить до Pascal. nvidia-open для неї не підход�
 
 STEAM
 
-В Arch потрібен увімкнений multilib і 32-бітні графічні бібліотеки
-для обраного драйвера. Steam встановлюється окремо через pacman.
+У Feodal ISO вже є Steam, multilib та 32-бітні бібліотеки Intel Vulkan.
+Відкрий Steam, увійди й завантаж ігри; клієнту потрібен інтернет.
 Не змішуй бібліотеки різних гілок NVIDIA. Після встановлення
 перезапусти діагностику, а перед зміною GPU повністю закрий Steam.
 Налаштування тут діє лише на кнопку Steam у панелі й центрі керування,
@@ -111,6 +111,12 @@ class ControlCenter(Gtk.Window):
         gaming.pack_start(self.saved, False, False, 0)
         self.mode.connect('changed', self.save)
         gaming.pack_start(shell.button('Запустити Steam', lambda _: shell.launch_steam()), False, False, 0)
+        gaming.pack_start(shell.button('Перевірити ігровий набір',
+                                      lambda _: shell.run(['xterm', '-hold', '-e', 'feodal-gaming', 'status'])),
+                          False, False, 0)
+        gaming.pack_start(shell.button('Інструкція: ігри та MX330',
+                                      lambda _: shell.run(['mousepad', '/usr/share/doc/feodal/gaming.md'])),
+                          False, False, 0)
         gaming.pack_start(self.label('Перед зміною GPU повністю закрий уже запущений Steam.\n'
                                     'Діагностика запускається лише на запит і може пробудити NVIDIA.'), False, False, 0)
         notebook.append_page(gaming, Gtk.Label(label='Ігри / GPU'))
