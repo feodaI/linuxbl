@@ -53,7 +53,7 @@ class AntigravityTests(unittest.TestCase):
         self.assertEqual(binary, Path('/home/taras/.local/opt/antigravity/antigravity'))
         self.assertTrue(ag.installed(self.home))
         self.assertEqual(Path(ag.paths(self.home)['bin']).readlink(), binary)
-        self.assertIn('Exec="/home/taras/.local/opt/antigravity/antigravity"',
+        self.assertIn('Exec="/home/taras/.local/opt/antigravity/antigravity" --disable-gpu %U',
                       ag.paths(self.home)['desktop'].read_text())
         self.assertEqual(sorted(p.name for p in (self.home / '.local/opt').iterdir()), ['antigravity'])
         ag.uninstall(self.home)
