@@ -48,6 +48,10 @@ def steam_command(mode, status):
         return ['steam']
     if mode != 'nvidia':
         raise ValueError('Невідомий режим GPU.')
-    if not status.get('nvidia_ready') or not status.get('prime_available'):
-        raise ValueError('NVIDIA не готова: потрібні робочий драйвер і prime-run. Відкрий діагностику.')
-    return ['prime-run', 'steam']
+    if not status.get('nvidia_ready'):
+        raise ValueError('NVIDIA не готова: потрібен робочий драйвер. Відкрий діагностику.')
+    return [
+        'env', '__NV_PRIME_RENDER_OFFLOAD=1',
+        '__GLX_VENDOR_LIBRARY_NAME=nvidia', '__VK_LAYER_NV_optimus=NVIDIA_only',
+        'steam',
+    ]
