@@ -67,10 +67,14 @@ class CoreTests(unittest.TestCase):
                                                                    'password'),
                               ({'password_confirm': 'other'}, 'password'), ({'hostname': 'my host'}, 'hostname'),
                               ({'hostname': '-x'}, 'hostname'), ({'fullname': 'a:b'}, 'fullname'),
+                              ({'password': 'secret\r1', 'password_confirm': 'secret\r1'}, 'password'),
+                              ({'fullname': 'Тарас\x00'}, 'fullname'), ({'username': None}, 'username'),
+                              ({'timezone': '\x00'}, 'timezone'),
                               ({'timezone': '../../etc/passwd'}, 'timezone'), ({'timezone': 'Mars/Base'}, 'timezone'),
                               ({'locale': 'xx_XX'}, 'locale')):
             problems = core.validate_user({**good, **change})
             self.assertIn(field, [name for name, _ in problems], change)
+        self.assertIn('config', [name for name, _ in core.validate_user(None)])
 
     def test_sizes_and_timezones(self):
         self.assertEqual(core.human_size(512 * GB), '512 ГБ')

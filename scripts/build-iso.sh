@@ -52,6 +52,13 @@ repo_dir="$work_root/local-repo"
 mkdir -p -- "$profile" "$repo_dir" "$work_root/work"
 cp -a -- "$releng_profile/." "$profile/"
 cp -a -- "$overlay_dir/." "$profile/airootfs/"
+# Steam needs multilib at build time as well as in the installed system.
+sed -i -e 's/^#\[multilib\]/[multilib]/' "$profile/pacman.conf"
+if ! grep -q '^\[multilib\]' "$profile/pacman.conf"; then
+    printf '\n[multilib]\nInclude = /etc/pacman.d/mirrorlist\n' >> "$profile/pacman.conf"
+else
+    sed -i '/^\[multilib\]/,/^$/s/^#Include/Include/' "$profile/pacman.conf"
+fi
 sed -i \
     -e 's/^iso_name=.*/iso_name="feodal"/' \
     -e 's/^iso_label=.*/iso_label="FEODAL"/' \

@@ -1,0 +1,28 @@
+#!/bin/sh
+set -eu
+
+account=${USER:-}
+if [ -z "$account" ]; then
+    printf '%s\n' 'feodal-lock: cannot identify the session user; screen remains unlocked' >&2
+    exit 0
+fi
+
+if ! passwd_status=$(passwd -S "$account" 2>/dev/null); then
+    printf '%s\n' 'feodal-lock: cannot verify the account password; screen remains unlocked' >&2
+    exit 0
+fi
+
+passwd_account=${passwd_status%% *}
+passwd_fields=${passwd_status#* }
+password_state=${passwd_fields%% *}
+if [ "$passwd_account" != "$account" ] || [ "$password_state" != P ]; then
+    printf '%s\n' 'feodal-lock: no usable account password; screen remains unlocked' >&2
+    exit 0
+fi
+
+if ! command -v i3lock >/dev/null 2>&1; then
+    printf '%s\n' 'feodal-lock: i3lock is not installed' >&2
+    exit 1
+fi
+
+exec i3lock --nofork
